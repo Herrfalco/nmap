@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/07 15:57:25 by fcadet            #+#    #+#             */
-/*   Updated: 2023/08/08 19:03:00 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/08/09 16:39:58 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,12 +15,11 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#define				MIN_PORT	1
-#define				MAX_PORT	1025
+#define				MAX_PORTS	1024
 #define				MAX_IPS		512
 #define				MAX_IP_SZ	15
 #define				FILE_SZ		((MAX_IP_SZ + 1) * MAX_IPS)
-#define				MAX_THRDS	251
+#define				MAX_THRDS	250
 #define				FLAGS_NB	6
 #define				SCANS_NB	6
 
@@ -46,8 +45,9 @@ typedef enum		scan_e {
 	ST_NULL = 0x2,
 	ST_ACK = 0x4,
 	ST_FIN = 0x8,
-	ST_XMAS = 0x10,
+	ST_XMAX = 0x10,
 	ST_UDP = 0x20,
+	ST_ALL = 0x3f,
 }					scan_t;
 
 typedef struct		opts_s {
@@ -64,10 +64,9 @@ opts_t		OPTS = {
 	.ips = { 0 },
 	.ip_nb = 0,
 	.speedup = 0,
-	.scan = ST_SYN,
+	.scan = ST_ALL,
 };
 
-/*
 uint8_t		OPT_EXCL[] = {
 	F_PORTS | F_IP | F_FILE | F_SPEEDUP | F_SCAN,	// F_HELP
 	F_HELP,											// F_PORTS
@@ -76,20 +75,10 @@ uint8_t		OPT_EXCL[] = {
 	F_HELP,											// F_SPEEDUP
 	F_HELP,											// F_SCAN
 };
-*/
 
-uint8_t		OPT_EXCL[] = {
-	0,				// F_HELP
-	0,				// F_PORTS
-	0 | F_FILE,		// F_IP
-	0 | F_IP,		// F_FILE
-	0,				// F_SPEEDUP
-	0,				// F_SCAN
-};
+typedef char		*(*parse_fn_t)(char *);
 
-typedef int			(*parse_fn_t)(char *);
-
-int				parse_flag(char *arg, parse_fn_t *parse_fn);
+char			*parse_flag(char *arg, parse_fn_t *parse_fn);
 
 int				str_n_cmp(char *s1, char *s2, uint64_t n) {
 	for (; n && *s1 && *s1 == *s2; --n, ++s1, ++s2);
@@ -120,11 +109,11 @@ void			print_opts(void) {
 	printf("\b \n");
 }
 
-int				parse_ports(char *arg) {
+char			*parse_ports(char *arg) {
 	uint8_t		i;
 
 	if (!arg)
-		return (-1);
+		return ("Ports not specified");
 	OPTS.ports[0] = 0;
 	OPTS.ports[1] = 0;
 	for (i = 0; i < 2; ++i, ++arg) {
@@ -135,54 +124,57 @@ int				parse_ports(char *arg) {
 		if (!*arg) {
 			if (!i)
 				OPTS.ports[1] = OPTS.ports[0] + 1;
-			return (0);
+			return (NULL);
 		} else if (!i && *arg != '-')
 			break;
 	}
-	return (-1);
+	return ("Invalid ports");
 }
 
-int				parse_ip(char *arg) {
+char			*parse_ip(char *arg) {
 	if (!arg)
-		return (-1);
-	return ((OPTS.ips[OPTS.ip_nb++] = inet_addr(arg)) == INADDR_NONE);
+		return ("IP not specified");
+	return ((OPTS.ips[OPTS.ip_nb++] = inet_addr(arg)) == INADDR_NONE
+			? "Invalid IP" : NULL);
 }
 
-int				parse_file(char *arg) {
+char			*parse_file(char *arg) {
 	char		buff[FILE_SZ + 1] = { 0 };
 	int64_t		sz;
 	uint16_t	i;
 	int			fd;
 
-	if (!arg || (fd = open(arg, O_RDONLY)) < 0)
-		return (-1);
-	if ((sz = read(fd, buff, FILE_SZ)) < 0) {
+	if (!arg)
+		return ("IP file not specified");
+	else if ((fd = open(arg, O_RDONLY)) < 0)
+		return ("Can't open IP file");
+	else if ((sz = read(fd, buff, FILE_SZ)) < 0) {
 		close(fd);
-		return (-1);
+		return ("Can't read IP file");
 	}
 	for (i = 0; i < sz && OPTS.ip_nb < MAX_IPS; ++OPTS.ip_nb) {
 		if ((OPTS.ips[OPTS.ip_nb] = inet_addr(buff + i)) == INADDR_NONE) {
 			close(fd);
-			return (-1);
+			return ("Invalid IP file");
 		}
 		for (; i < sz && buff[i] != '\n'; ++i);
 		++i;
 	}
 	close(fd);
-	return (0);
+	return (NULL);
 }
 
-int				parse_speedup(char *arg) {
+char			*parse_speedup(char *arg) {
 	if (!arg)
-		return (-1);
+		return ("Speedup not specified");
 	for (; *arg >= '0' && *arg <= '9'; ++arg) {
 		OPTS.speedup *= 10;
 		OPTS.speedup += *arg - '0';
 	}
-	return (!!*arg);
+	return (*arg ? "Invalid speedup" : NULL);
 }
 
-static int		parse_scan_name(char *arg) {
+static char		*parse_scan_name(char *arg) {
 	uint8_t			scan;
 	uint64_t		i;
 
@@ -190,23 +182,26 @@ static int		parse_scan_name(char *arg) {
 		if (!str_cmp(SCAN_NAMES[i], arg))
 			break;
 	scan = 1 << i;
-	if (i == SCANS_NB || (scan & OPTS.scan))
-		return (-1);
+	if (i == SCANS_NB)
+		return ("Invalid scan type");
+	else if (scan & OPTS.scan)
+		return ("Scan type duplicate");
 	OPTS.scan |= scan;
-	return (0);
+	return (NULL);
 }
 
-int				parse_scan(char *arg) {
+char			*parse_scan(char *arg) {
 	uint64_t		i;
+	char			*error;
 
 	if (!arg)
-		return (-1);
+		return ("Scan type not specified");
 	OPTS.scan = 0;
 	for (i = 0; arg[i]; ++i) {
 		if (arg[i] == '+') {
 			arg[i] = '\0';
-			if (parse_scan_name(arg))
-				return (-1);
+			if ((error = parse_scan_name(arg)))
+				return (error);
 			arg += i + 1;
 			i = 0;
 		}
@@ -214,7 +209,7 @@ int				parse_scan(char *arg) {
 	return (parse_scan_name(arg));
 }
 
-int				parse_flag(char *arg, parse_fn_t *parse_fn) {
+char			*parse_flag(char *arg, parse_fn_t *parse_fn) {
 	parse_fn_t	parse_fns[] = {
 		NULL,
 		parse_ports,
@@ -225,49 +220,73 @@ int				parse_flag(char *arg, parse_fn_t *parse_fn) {
 	};
 	flag_t		flag;
 	uint8_t		i;
-	
+
 	if (str_n_cmp(arg, "--", 2))
-		return (-1);
+		return ("Invalid argument");
 	arg += 2;
 	for (i = 0; i < FLAGS_NB; ++i) {
 		if (!str_cmp(FLAG_NAMES[i], arg)) {
 			flag = 1 << i;
-			if (OPTS.flag & (OPT_EXCL[i] | flag))
-				return (-1);
+			if (OPTS.flag & OPT_EXCL[i])
+				return ("Incompatible options");
+			else if (OPTS.flag & flag)
+				return ("Option duplicate");
 			OPTS.flag |= flag;
 			*parse_fn = parse_fns[i];
-			return (0);
+			return (NULL);
 		}
 	}
-	return (-1);
+	return ("Unrecognized option");
 }
 
-int				parse_args(char **argv) {
+char			*parse_args(char **argv) {
 	parse_fn_t		parse_fn;
+	char			*error;
 
 	for (parse_fn = NULL; *argv; ++argv) {
 		if (!parse_fn) {
-			if (parse_flag(*argv, &parse_fn))
-				return (-1);
-		} else if (parse_fn(*argv))
-			return (-1);
+			if ((error = parse_flag(*argv, &parse_fn)))
+				return (error);
+		} else if ((error = parse_fn(*argv)))
+			return (error);
 		else
 			parse_fn = NULL;
 	}
-	return (!!parse_fn);
+	return (parse_fn ? parse_fn(NULL) : NULL);
 }
 
-int				parse_check(void) {
-	return (OPTS.ports[0] < 1
-		|| OPTS.ports[0] >= OPTS.ports[1]
-		|| OPTS.ports[1] > 1024
-		|| !OPTS.ip_nb);
+char			*parse_check(void) {
+	if (OPTS.ports[0] >= OPTS.ports[1] || OPTS.ports[1] - OPTS.ports[0] > MAX_PORTS)
+		return ("Unvalid ports");
+	else if (OPTS.speedup > MAX_THRDS)
+		return ("Invalid speedup value");
+	return (OPTS.ip_nb || OPTS.flag & F_HELP ? NULL : "No IP specified");
+}
+
+uint8_t			disp_help(uint8_t error) {
+	if (!error)
+		printf("FT_NMAP v1.0 - 42 Paris's project, by fcadet & apitoise (9/2023)\n\n");
+	printf(	"Usage:    ft_nmap [--ip IP] or [--file FILE] or [--help]\n\n"
+			"Options:  --help       display help informations\n"
+			"          --ports      port or a range of ports (upto 1024)\n"
+			"          --ip         target IP address (IPV4)\n"
+			"          --file       file containing a list of IP address (upto 512)\n"
+			"          --speedup    number of aditionnal threads (upto 250))\n"
+			"          --scan       scan types combined with a '+'\n"
+			"                       (SYN, NULL, ACK, FIN, XMAX, UDP)\n");
+	return (error);
 }
 
 int			main(int, char **argv) {
-	if (parse_args(++argv) || parse_check()) {
-		printf("parsing error\n");
-		return (1);
+	char		*error;
+
+	if ((error = parse_args(++argv))
+			|| (error = parse_check())) {
+		printf("Error:    %s\n\n", error);
+		return (disp_help(1));
+	}
+	if (OPTS.flag & F_HELP) {
+		return (disp_help(0));
 	}
 	print_opts();
 	return (0);
