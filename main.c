@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/07 15:57:25 by fcadet            #+#    #+#             */
-/*   Updated: 2023/08/09 16:39:58 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/08/11 14:47:12 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,13 +15,14 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#define				MAX_PORTS	1024
-#define				MAX_IPS		512
-#define				MAX_IP_SZ	15
-#define				FILE_SZ		((MAX_IP_SZ + 1) * MAX_IPS)
-#define				MAX_THRDS	250
-#define				FLAGS_NB	6
-#define				SCANS_NB	6
+#define				MAX_PORTS		1024
+#define				MAX_PORT_VAL	65535
+#define				MAX_IPS			512
+#define				MAX_IP_SZ		15
+#define				FILE_SZ			((MAX_IP_SZ + 1) * MAX_IPS)
+#define				MAX_THRDS		250
+#define				FLAGS_NB		6
+#define				SCANS_NB		6
 
 char		*FLAG_NAMES[] = {
 	"help", "ports", "ip", "file", "speedup", "scan",
@@ -51,7 +52,8 @@ typedef enum		scan_e {
 }					scan_t;
 
 typedef struct		opts_s {
-	uint16_t		ports[2];
+	uint16_t		ports[MAX_PORTS];
+	uint64_t		port_nb;
 	in_addr_t		ips[MAX_IPS];
 	uint64_t		ip_nb;
 	uint8_t			speedup;
@@ -60,7 +62,8 @@ typedef struct		opts_s {
 }					opts_t;
 
 opts_t		OPTS = { 
-	.ports = { 1, 1024 },
+	.ports = { 0 },
+	.port_nb = 0,
 	.ips = { 0 },
 	.ip_nb = 0,
 	.speedup = 0,
@@ -93,9 +96,24 @@ int				str_cmp(char *s1, char *s2) {
 void			print_opts(void) {
 	struct in_addr	ip = { 0 };
 	uint64_t		i;
+	uint16_t		lst;
+	uint8_t			range;
 
 	printf("help: %s\n", OPTS.flag & F_HELP ? "true" : "false");
-	printf("ports: %d-%d\n", OPTS.ports[0], OPTS.ports[1]);
+	printf("ports: %d", (lst = *OPTS.ports));
+	for (i = 1; i < OPTS.port_nb; lst = OPTS.ports[i], ++i) {
+		if (OPTS.ports[i] - lst > 1) {
+			if (range)
+				printf("-%d,%d", lst + 1, OPTS.ports[i]);
+			else
+				printf(",%d", OPTS.ports[i]);
+			range = 0;
+		} else
+			range = 1;
+	}
+	if (range)
+		printf("-%d", lst + 1);
+	printf(" (%ld ports)\n", OPTS.port_nb);
 	printf("ips: ");
 	for (i = 0; i < OPTS.ip_nb; ++i) {
 		ip.s_addr = OPTS.ips[i];
@@ -109,26 +127,56 @@ void			print_opts(void) {
 	printf("\b \n");
 }
 
+char			*save_port(uint32_t start, uint32_t end, uint8_t num, uint8_t range) {
+	if (!num)
+		return ("Invalid port");
+	if (range) {
+		if (end <= start)
+			return ("Invalid port range");
+	} else {
+		start = end;
+		++end;
+	}
+	if (OPTS.port_nb && start <= OPTS.ports[OPTS.port_nb - 1])
+		return ("Not ascending ports");
+	if (OPTS.port_nb + (end - start) > MAX_PORTS)
+		return ("Invalid number of ports");
+	for (; start < end; ++start)
+		OPTS.ports[OPTS.port_nb++] = start;
+	return (NULL);
+}
+
 char			*parse_ports(char *arg) {
-	uint8_t		i;
+	uint8_t		num, range;
+	uint32_t	start, end;
+	char		*error;
 
 	if (!arg)
 		return ("Ports not specified");
-	OPTS.ports[0] = 0;
-	OPTS.ports[1] = 0;
-	for (i = 0; i < 2; ++i, ++arg) {
-		for (; *arg >= '0' && *arg <= '9'; ++arg) {
-			OPTS.ports[i] *= 10;
-			OPTS.ports[i] += *arg - '0';
-		}
-		if (!*arg) {
-			if (!i)
-				OPTS.ports[1] = OPTS.ports[0] + 1;
-			return (NULL);
-		} else if (!i && *arg != '-')
-			break;
+	for (start = 0, end = 0, num = 0, range = 0; *arg; ++arg) {
+		if (*arg >= '0' && *arg <= '9') {
+			end *= 10;
+			end += *arg - '0';
+			if (end > MAX_PORT_VAL)
+				return ("Invalid port value");
+			num = 1;
+		} else if (*arg == '-') {
+			if (range || !num)
+				return ("Invalid port range");
+			start = end;
+			end = 0;
+			range = 1;
+			num = 0;
+		} else if (*arg == ',') {
+			if ((error = save_port(start, end, num, range)))
+				return (error);
+			end = 0;
+			range = 0;
+			num = 0;
+		} else
+			return ("Invalid delimiter in ports option");
 	}
-	return ("Invalid ports");
+	return (save_port(start, end, num, range));
 }
 
 char			*parse_ip(char *arg) {
@@ -256,10 +304,8 @@ char			*parse_args(char **argv) {
 }
 
 char			*parse_check(void) {
-	if (OPTS.ports[0] >= OPTS.ports[1] || OPTS.ports[1] - OPTS.ports[0] > MAX_PORTS)
-		return ("Unvalid ports");
-	else if (OPTS.speedup > MAX_THRDS)
-		return ("Invalid speedup value");
+	if (OPTS.speedup > MAX_THRDS)
+		return ("Invalid speedup value (max 250)");
 	return (OPTS.ip_nb || OPTS.flag & F_HELP ? NULL : "No IP specified");
 }
 
@@ -268,13 +314,19 @@ uint8_t			disp_help(uint8_t error) {
 		printf("FT_NMAP v1.0 - 42 Paris's project, by fcadet & apitoise (9/2023)\n\n");
 	printf(	"Usage:    ft_nmap [--ip IP] or [--file FILE] or [--help]\n\n"
 			"Options:  --help       display help informations\n"
-			"          --ports      port or a range of ports (upto 1024)\n"
+			"          --ports      ascending ports or range of ports (max 1024)\n"
+			"						(e.g. 1,10-12,17,19,20-30)\n"
 			"          --ip         target IP address (IPV4)\n"
 			"          --file       file containing a list of IP address (upto 512)\n"
 			"          --speedup    number of aditionnal threads (upto 250))\n"
 			"          --scan       scan types combined with a '+'\n"
 			"                       (SYN, NULL, ACK, FIN, XMAX, UDP)\n");
 	return (error);
+}
+
+void			init_ports(void) {
+	for (OPTS.port_nb = 0; OPTS.port_nb < MAX_PORTS; ++OPTS.port_nb)
+		OPTS.ports[OPTS.port_nb] = OPTS.port_nb + 1;
 }
 
 int			main(int, char **argv) {
@@ -285,9 +337,10 @@ int			main(int, char **argv) {
 		printf("Error:    %s\n\n", error);
 		return (disp_help(1));
 	}
-	if (OPTS.flag & F_HELP) {
+	if (OPTS.flag & F_HELP)
 		return (disp_help(0));
-	}
+	if (!(OPTS.flag & F_PORTS))
+		init_ports();
 	print_opts();
 	return (0);
 }
