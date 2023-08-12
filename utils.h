@@ -1,17 +1,21 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   main.c                                             :+:      :+:    :+:   */
+/*   utils.h                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2023/08/07 15:57:25 by fcadet            #+#    #+#             */
-/*   Updated: 2023/08/12 15:16:39 by fcadet           ###   ########.fr       */
+/*   Created: 2023/08/12 15:04:30 by fcadet            #+#    #+#             */
+/*   Updated: 2023/08/12 15:05:12 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "parse.h"
+#ifndef UTILS_H
+#define UTILS_H
 
-int		main(int, char **argv) {
-	return (parse(argv));
-}
+#include "includes.h"
+
+int				str_n_cmp(char *s1, char *s2, uint64_t n);
+int				str_cmp(char *s1, char *s2);
+
+#endif // UTILS_H

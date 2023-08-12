@@ -1,17 +1,30 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   main.c                                             :+:      :+:    :+:   */
+/*   includes.h                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2023/08/07 15:57:25 by fcadet            #+#    #+#             */
-/*   Updated: 2023/08/12 15:16:39 by fcadet           ###   ########.fr       */
+/*   Created: 2023/08/12 15:00:44 by fcadet            #+#    #+#             */
+/*   Updated: 2023/08/12 15:01:19 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "parse.h"
+#ifndef INCLUDES_H
+#define INCLUDES_H
 
-int		main(int, char **argv) {
-	return (parse(argv));
-}
+#include <arpa/inet.h>
+#include <stdio.h>
+#include <fcntl.h>
+#include <unistd.h>
+
+#define				MAX_PORTS		1024
+#define				MAX_PORT_VAL	65535
+#define				MAX_IPS			512
+#define				MAX_IP_SZ		15
+#define				FILE_SZ			((MAX_IP_SZ + 1) * MAX_IPS)
+#define				MAX_THRDS		250
+#define				FLAGS_NB		6
+#define				SCANS_NB		6
+
+#endif // INCLUDES_H

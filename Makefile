@@ -1,5 +1,7 @@
 NAME	=	ft_nmap
-SRCS	=	main.c
+SRCS	=	main.c \
+		parse.c \
+		utils.c
 OBJS	=	$(SRCS:.c=.o)
 CC	=	gcc
 CFLAGS	=	-Wall -Wextra -Werror
