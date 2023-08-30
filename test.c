@@ -42,6 +42,15 @@ unsigned short checksum(uint16_t *data, uint64_t nbytes) {
     return (~sum);
 }
 
+void	response(int sock, struct sockaddr *src_addr) {
+	char				buff[BUFF_SZ];
+	socklen_t	sock_sz = sizeof(struct sockaddr_in);
+
+	if (recvfrom(sock, buff, BUFF_SZ, 0 , src_addr, &sock_sz) < 0)
+		fprintf(stderr, "recv error\n");
+	alarm(1);
+}
+
 int		main() {
     int					sock;
     char				data[BUFF_SZ] = { 0 };
@@ -82,7 +91,7 @@ int		main() {
     }
 
     printf("SYN packet sent.\n");
-
+	response(sock, (struct sockaddr *)&dst_addr);
     close(sock);
 
     return 0;
