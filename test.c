@@ -13,7 +13,7 @@
 #define BUFF_SZ				4096
 #define SRC_PORT			54321
 #define DST_PORT			80
-#define DST_IP 				"127.0.0.1"
+#define DST_IP 				"1.1.1.1"
 #define DEF_WIN_SZ			5840
 
 #include <stdio.h>
@@ -23,6 +23,9 @@
 #include <arpa/inet.h>
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
+#include <signal.h>
+
+int					sock;
 
 struct				ip_pseudo_s {
 	uint32_t		src;
@@ -42,17 +45,21 @@ unsigned short checksum(uint16_t *data, uint64_t nbytes) {
     return (~sum);
 }
 
-void	response(int sock, struct sockaddr *src_addr) {
+void	response(struct sockaddr *src_addr) {
 	char				buff[BUFF_SZ];
 	socklen_t	sock_sz = sizeof(struct sockaddr_in);
 
 	if (recvfrom(sock, buff, BUFF_SZ, 0 , src_addr, &sock_sz) < 0)
 		fprintf(stderr, "recv error\n");
-	alarm(1);
+}
+
+void	sig_handler(int) {
+	printf("SIGINT\n");
+	close(sock);
+	exit(0);
 }
 
 int		main() {
-    int					sock;
     char				data[BUFF_SZ] = { 0 };
     struct iphdr		*iph = (struct iphdr *)data;
     struct tcphdr		*tcph = (struct tcphdr *)(iph + 1);
@@ -62,6 +69,9 @@ int		main() {
 		.sin_port = htons(DST_PORT),
 		.sin_addr.s_addr = inet_addr(DST_IP),
 	};
+	struct sockaddr_in	src_addr;
+	
+	signal(SIGINT, sig_handler);
 
 	ipp->src = htons(SRC_PORT);
 	ipp->dst = dst_addr.sin_port;
@@ -85,13 +95,17 @@ int		main() {
         perror("Socket error");
         return (1);
     }
+//	if (bind(sock, (struct sockaddr *)&dst_addr, sizeof(struct sockaddr)) < 0) {
+//		perror("Bind error");
+//		return (1);
+//	}
     if (sendto(sock, data, iph->tot_len, 0, (struct sockaddr *)&dst_addr, sizeof(dst_addr)) == -1) {
         perror("Sendto error");
         return (1);
     }
 
     printf("SYN packet sent.\n");
-	response(sock, (struct sockaddr *)&dst_addr);
+	response((struct sockaddr *)&src_addr);
     close(sock);
 
     return 0;

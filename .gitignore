@@ -1,0 +1,4 @@
+*.o
+*.swp
+ft_nmap
+a.out
