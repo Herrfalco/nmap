@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/30 09:16:03 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/01 20:41:53 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/02 16:14:56 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,8 +14,8 @@
 #define MIN_PORT			49152
 #define	MAX_PORT			65536	
 #define SRC_PORT			55555
-#define DST_PORT			22
-#define DST_ADDR			"127.0.0.1"
+#define DST_PORT			80
+#define DST_ADDR			"91.211.165.100"//"127.0.0.1"
 #define MAX_WIN				0xff
 
 #include <stdio.h>
@@ -43,11 +43,10 @@ struct				ip_pseudo_s {
 
 typedef struct ip_pseudo_s		ip_pseudo_t;
 
-unsigned short checksum(uint16_t *data, uint64_t nbytes) {
-    uint64_t	 sum;
+uint16_t checksum(uint16_t *data, uint64_t nbytes) {
+    uint32_t	 sum;
 
-	for (sum = 0; nbytes; nbytes -= 2, sum += *(data++));
-	for (; sum >> 16; sum = (sum & htonl(0xffff)) + (sum >> 16));
+	for (sum = 0; nbytes; nbytes -= 2, sum += *(data++), sum = (sum & 0xffff) + (sum >> 16));
     return (~sum);
 }
 
@@ -102,7 +101,7 @@ void	*sniffer_fn(void *) {
 	struct iphdr			*ip = (struct iphdr *)buff;
 	struct tcphdr			*tcp = (struct tcphdr *)(ip + 1);
 
-	for (int i = 10; i; --i) {
+	for (;;) {
 		if (recvfrom(sock, buff, BUFF_SZ, 0, NULL, NULL) < 0)
 			fprintf(stderr, "recv error\n");
 		if (ntohs(tcp->dest) == SRC_PORT) {
@@ -175,6 +174,7 @@ int		main(void) {
 	iph->saddr = local.sin_addr.s_addr;
     iph->daddr = remote.sin_addr.s_addr;
 
+	print_packet(data);
     if (sendto(sock, data,
 				sizeof(struct iphdr) + sizeof(struct tcphdr),
 				0, (struct sockaddr *)&remote,
@@ -182,8 +182,9 @@ int		main(void) {
         perror("Sendto error");
         return (1);
     }
-    printf("SYN packet sent.\n");
+	printf("Packet sent.\n");
 	sniffer_fn(NULL);
+	printf("Packet received.\n");
 //	pthread_join(sniffer, NULL);
 	close(sock);
 	return (0);
