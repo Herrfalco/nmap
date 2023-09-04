@@ -71,6 +71,23 @@ void	sig_handler(int) {
 }
 
 int		get_local(struct in_addr *local, in_port_t *port) {
+	char				buff_err[PCAP_ERRBUF_SIZE];
+//	char				*device;
+	pcap_if_t			*all_devs;
+//	pcap_t				pcap_fd;
+
+	if (pcap_findalldevs(&all_devs, buff_err)) {
+		fprintf(stderr, "Pcap error: %s\n", buff_err);
+		return (-1);
+	}
+	//device = all_devs->name;
+
+	*port = htons(SRC_PORT);
+	*local = ((struct sockaddr_in *)all_devs->addresses->addr)->sin_addr;
+	printf("ip: %s\n", inet_ntoa(*local));
+	pcap_freealldevs(all_devs);
+	return (0);
+/*
     struct ifaddrs		*ifaddr, *i;
 
     if (getifaddrs(&ifaddr) == -1)
@@ -87,7 +104,7 @@ int		get_local(struct in_addr *local, in_port_t *port) {
     }
 	freeifaddrs(ifaddr);
 	errno = EADDRNOTAVAIL;
-	return (-1);
+	return (-1);*/
 }
 
 void		fill_headers(struct iphdr *iph, struct tcphdr *tcph, struct sockaddr_in local,
@@ -159,15 +176,6 @@ void		print_packet(void *packet) {
 */
 
 void	*sniffer_fn(void *) {
-	char		buff_err[PCAP_ERRBUF_SIZE];
-	char		*device;
-	pcap_if_t	*all_devs;
-
-	if (pcap_findalldevs(&all_devs, buff_err))
-		return (NULL);
-	device = all_devs->name;
-	printf("device: %s\n", device);
-	pcap_freealldevs(all_devs);
 	return (NULL);
 }
 
