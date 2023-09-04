@@ -14,9 +14,10 @@
 #define MIN_PORT			49152
 #define	MAX_PORT			65536	
 #define SRC_PORT			55555
-#define DST_PORT			80
-#define DST_ADDR			"91.211.165.100"//"127.0.0.1"
+#define DST_PORT			631
+#define DST_ADDR			/*"91.211.165.100"*/"127.0.0.1"
 #define MAX_WIN				0xff
+#define SCAN_TYPE			SYN
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,6 +41,18 @@ struct				ip_pseudo_s {
 	uint8_t			prot;
 	uint16_t		tcp_seg_sz;
 };
+
+typedef enum		scan_flag_e {
+	NUL,
+	URG,
+	ACK,
+	PSH,
+	RST,
+	SYN,
+	FIN,
+	XMAS,
+	UDP
+}					scan_flag_t;
 
 typedef struct ip_pseudo_s		ip_pseudo_t;
 
@@ -74,6 +87,36 @@ int		get_local(struct in_addr *local, in_port_t *port) {
 	freeifaddrs(ifaddr);
 	errno = EADDRNOTAVAIL;
 	return (-1);
+}
+
+void		fill_headers(struct iphdr *iph, struct tcphdr *tcph, struct sockaddr_in local,
+							struct sockaddr_in remote, scan_flag_t scan) {
+	ip_pseudo_t			*ipp = ((ip_pseudo_t *)tcph) - 1;
+
+	ipp->src = local.sin_addr.s_addr;
+	ipp->dst = remote.sin_addr.s_addr;
+	ipp->prot = IPPROTO_TCP;
+	ipp->tcp_seg_sz = htons(sizeof(struct tcphdr));
+
+    tcph->source = local.sin_port;
+    tcph->dest = remote.sin_port;
+    tcph->doff = sizeof(struct tcphdr) / 4;
+	tcph->fin = ((scan == FIN || scan == XMAS) ? 1 : 0);
+    tcph->syn = (scan == SYN ? 1 : 0);
+	tcph->psh = ((scan == PSH || scan == XMAS) ? 1 : 0);
+	tcph->ack = (scan == ACK ? 1 : 0);
+	tcph->urg = ((scan == URG || scan == XMAS) ? 1 : 0);
+	tcph->window = MAX_WIN;
+    tcph->check = checksum((uint16_t *)ipp,
+			sizeof(ip_pseudo_t) + sizeof(struct tcphdr));
+
+	bzero(iph, sizeof(struct iphdr));
+    iph->version = 4;
+    iph->ihl = sizeof(struct iphdr) / 4;
+    iph->ttl = 255;
+    iph->protocol = IPPROTO_TCP;
+	iph->saddr = local.sin_addr.s_addr;
+    iph->daddr = remote.sin_addr.s_addr;
 }
 
 void		print_packet(void *packet) {
@@ -117,15 +160,14 @@ int		main(void) {
     char				data[BUFF_SZ] = { 0 };
     struct iphdr		*iph = (struct iphdr *)data;
     struct tcphdr		*tcph = (struct tcphdr *)(iph + 1);
-	ip_pseudo_t			*ipp = ((ip_pseudo_t *)tcph) - 1;
-//	pthread_t			sniffer;
 	struct sockaddr_in	local = {
 		.sin_family = AF_INET,
-	}, remote = {
+	},	remote = {
 		.sin_family = AF_INET,
 		.sin_addr.s_addr = inet_addr(DST_ADDR),
-		.sin_port = htons(DST_PORT),
+		.sin_port = htons(DST_PORT)
 	};
+//	pthread_t			sniffer;
 
 	if (signal(SIGINT, sig_handler) == SIG_ERR) {
         perror("Sig handler error");
@@ -145,6 +187,7 @@ int		main(void) {
 		perror("Local error");
 		return (4);
 	}
+	fill_headers(iph, tcph, local, remote, SCAN_TYPE);
 	/*
 	if (pthread_create(&sniffer, NULL, sniffer_fn, NULL)) {
 		close(sock);
@@ -152,28 +195,6 @@ int		main(void) {
 				"Sniffer creation: Fail to create thread\n");
 	}
 	*/
-
-	ipp->src = local.sin_addr.s_addr;
-	ipp->dst = remote.sin_addr.s_addr;
-	ipp->prot = IPPROTO_TCP;
-	ipp->tcp_seg_sz = htons(sizeof(struct tcphdr));
-
-    tcph->source = local.sin_port;
-    tcph->dest = remote.sin_port;
-    tcph->doff = sizeof(struct tcphdr) / 4;
-    tcph->syn = 1;
-	tcph->window = MAX_WIN;
-    tcph->check = checksum((uint16_t *)ipp,
-			sizeof(ip_pseudo_t) + sizeof(struct tcphdr));
-
-	bzero(iph, sizeof(struct iphdr));
-    iph->version = 4;
-    iph->ihl = sizeof(struct iphdr) / 4;
-    iph->ttl = 255;
-    iph->protocol = IPPROTO_TCP;
-	iph->saddr = local.sin_addr.s_addr;
-    iph->daddr = remote.sin_addr.s_addr;
-
 	print_packet(data);
     if (sendto(sock, data,
 				sizeof(struct iphdr) + sizeof(struct tcphdr),
