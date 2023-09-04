@@ -14,10 +14,10 @@
 #define MIN_PORT			49152
 #define	MAX_PORT			65536	
 #define SRC_PORT			55555
-#define DST_PORT			631
+#define DST_PORT			80
 #define DST_ADDR			/*"91.211.165.100"*/"127.0.0.1"
 #define MAX_WIN				0xff
-#define SCAN_TYPE			SYN
+#define SCAN_TYPE			FIN
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,6 +31,7 @@
 #include <ifaddrs.h>
 #include <errno.h>
 #include <pthread.h>
+#include <pcap/pcap.h>
 
 int					sock;
 
@@ -100,6 +101,8 @@ void		fill_headers(struct iphdr *iph, struct tcphdr *tcph, struct sockaddr_in lo
 
     tcph->source = local.sin_port;
     tcph->dest = remote.sin_port;
+	tcph->seq = htons(42);
+	tcph->ack_seq = htons(42);
     tcph->doff = sizeof(struct tcphdr) / 4;
 	tcph->fin = ((scan == FIN || scan == XMAS) ? 1 : 0);
     tcph->syn = (scan == SYN ? 1 : 0);
@@ -123,6 +126,8 @@ void		print_packet(void *packet) {
 	struct iphdr			*ip = (struct iphdr *)packet;
 	struct tcphdr			*tcp = (struct tcphdr *)(ip + 1);
 
+	printf("seq: %d ", ntohs(tcp->seq));
+	printf("ack_seq: %d ", ntohs(tcp->ack_seq));
 	printf("%s::%d > ",
 			inet_ntoa(*(struct in_addr *)&ip->saddr),
 			ntohs(tcp->source));
@@ -138,8 +143,7 @@ void		print_packet(void *packet) {
 			tcp->urg ? " URG" : ""
 		  );
 }
-
-void	*sniffer_fn(void *) {
+/*
 	char					buff[BUFF_SZ];
 	struct iphdr			*ip = (struct iphdr *)buff;
 	struct tcphdr			*tcp = (struct tcphdr *)(ip + 1);
@@ -152,6 +156,18 @@ void	*sniffer_fn(void *) {
 			return (NULL);
 		}
 	}
+*/
+
+void	*sniffer_fn(void *) {
+	char		buff_err[PCAP_ERRBUF_SIZE];
+	char		*device;
+	pcap_if_t	*all_devs;
+
+	if (pcap_findalldevs(&all_devs, buff_err))
+		return (NULL);
+	device = all_devs->name;
+	printf("device: %s\n", device);
+	pcap_freealldevs(all_devs);
 	return (NULL);
 }
 
