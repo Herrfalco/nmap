@@ -70,41 +70,32 @@ void	sig_handler(int) {
 	exit(0);
 }
 
-int		get_local(struct in_addr *local, in_port_t *port) {
+int		pcap_error(char *err, pcap_if_t *all_devs) {
+	fprintf(stderr, "Pcap error: %s\n", err);
+	if (all_devs)
+		pcap_freealldevs(all_devs);
+	return (-1);
+}
+
+int		get_local(struct in_addr *local, in_port_t *port, char *dev_name, uint64_t dev_sz) {
 	char				buff_err[PCAP_ERRBUF_SIZE];
-//	char				*device;
-	pcap_if_t			*all_devs;
-//	pcap_t				pcap_fd;
+	pcap_if_t			*all_devs = NULL;
+	uint32_t			dev_ip;
+	uint32_t			dev_msk;
+//	pcap_t				pcap;
 
-	if (pcap_findalldevs(&all_devs, buff_err)) {
-		fprintf(stderr, "Pcap error: %s\n", buff_err);
-		return (-1);
-	}
-	//device = all_devs->name;
-
+	if (pcap_findalldevs(&all_devs, buff_err))
+		pcap_error(buff_err, NULL);
+	if (!all_devs)
+		pcap_error("No interface", all_devs);
+	strncpy(dev_name, all_devs->name, dev_sz);
+	if (pcap_lookupnet(dev_name, &dev_ip, &dev_msk, buff_err))
+		pcap_error(buff_err, all_devs),
 	*port = htons(SRC_PORT);
-	*local = ((struct sockaddr_in *)all_devs->addresses->addr)->sin_addr;
-	printf("ip: %s\n", inet_ntoa(*local));
+	printf("PORT: %d\n", *port);
+	*local = *((struct in_addr *)&dev_ip);
 	pcap_freealldevs(all_devs);
 	return (0);
-/*
-    struct ifaddrs		*ifaddr, *i;
-
-    if (getifaddrs(&ifaddr) == -1)
-		return (-1);
-    for (i = ifaddr; i != NULL; i = i->ifa_next) {
-		if (i->ifa_addr && i->ifa_addr->sa_family == AF_INET
-				&& !(i->ifa_flags & IFF_LOOPBACK) && (i->ifa_flags & IFF_UP)
-				&& (i->ifa_flags & IFF_RUNNING)) {
-			*local = ((struct sockaddr_in *)i->ifa_addr)->sin_addr;
-			*port = htons(SRC_PORT);
-			freeifaddrs(ifaddr);
-			return (0);
-		}
-    }
-	freeifaddrs(ifaddr);
-	errno = EADDRNOTAVAIL;
-	return (-1);*/
 }
 
 void		fill_headers(struct iphdr *iph, struct tcphdr *tcph, struct sockaddr_in local,
@@ -118,8 +109,8 @@ void		fill_headers(struct iphdr *iph, struct tcphdr *tcph, struct sockaddr_in lo
 
     tcph->source = local.sin_port;
     tcph->dest = remote.sin_port;
-	tcph->seq = htons(42);
-	tcph->ack_seq = htons(42);
+	tcph->seq = htonl(42);
+	tcph->ack_seq = htonl(42);
     tcph->doff = sizeof(struct tcphdr) / 4;
 	tcph->fin = ((scan == FIN || scan == XMAS) ? 1 : 0);
     tcph->syn = (scan == SYN ? 1 : 0);
@@ -129,7 +120,6 @@ void		fill_headers(struct iphdr *iph, struct tcphdr *tcph, struct sockaddr_in lo
 	tcph->window = MAX_WIN;
     tcph->check = checksum((uint16_t *)ipp,
 			sizeof(ip_pseudo_t) + sizeof(struct tcphdr));
-
 	bzero(iph, sizeof(struct iphdr));
     iph->version = 4;
     iph->ihl = sizeof(struct iphdr) / 4;
@@ -181,7 +171,7 @@ void	*sniffer_fn(void *) {
 
 int		main(void) {
 	int					on = 1;
-    char				data[BUFF_SZ] = { 0 };
+    char				data[BUFF_SZ] = { 0 }, dev_name[BUFF_SZ] = { 0 };
     struct iphdr		*iph = (struct iphdr *)data;
     struct tcphdr		*tcph = (struct tcphdr *)(iph + 1);
 	struct sockaddr_in	local = {
@@ -206,7 +196,7 @@ int		main(void) {
         perror("Socket option error");
         return (3);
     }
-	if (get_local(&local.sin_addr, &local.sin_port)) {
+	if (get_local(&local.sin_addr, &local.sin_port, dev_name, BUFF_SZ)) {
 		close(sock);
 		perror("Local error");
 		return (4);
