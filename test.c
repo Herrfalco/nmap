@@ -15,12 +15,11 @@
 #define	MAX_PORT			65536	
 #define SRC_PORT			55555
 #define DST_PORT			80
-#define DST_ADDR			/*"91.211.165.100"*/"127.0.0.1"
+#define DST_ADDR			/*"91.211.165.100"*/"1.1.1.1"
 #define MAX_WIN				0xff
-#define SCAN_TYPE			FIN
+#define SCAN_TYPE			SYN
 #define PCAP_SNAPLEN_MAX	65535
-#define PCAP_TO				5
-#define ETH_HDR_SZ			14
+#define PCAP_TO				-1
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,6 +28,7 @@
 #include <arpa/inet.h>
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
+#include <netinet/ip_icmp.h>
 #include <net/if.h>
 #include <signal.h>
 #include <ifaddrs.h>
@@ -170,15 +170,36 @@ void		print_packet(void *packet) {
 
 void	cap_handler(uint8_t *data, const struct pcap_pkthdr *pkt_hdr, const uint8_t *pkt) {
 	const struct	ether_header	*ethh = (const struct ether_header *)pkt;
-	const struct	iphdr			*iph = (const struct iphdr *)pkt + ETH_HDR_SZ;
+	const struct	iphdr			*iph = (const struct iphdr *)(ethh + 1);
+	const struct	tcphdr			*tcph = { 0 };
+	const struct	icmphdr			*icmph = { 0 };
 
-	char	ip_dst[INET_ADDRSTRLEN];
+	char	ip_src[INET_ADDRSTRLEN];
 
 	(void)pkt_hdr;
 	(void)data;
-	if (ntohs(ethh->ether_type) == ETHERTYPE_IP && iph->protocol == IPPROTO_ICMP) {
-		inet_ntop(AF_INET, &(iph->daddr), ip_dst, INET_ADDRSTRLEN);
-		printf("%s\n", ip_dst);
+	if (ntohs(ethh->ether_type) == ETHERTYPE_IP) {
+		inet_ntop(AF_INET, &(iph->saddr), ip_src, INET_ADDRSTRLEN);
+		if (!strcmp(ip_src, DST_ADDR)) {
+			switch(iph->protocol) {
+				case IPPROTO_TCP:
+					tcph = (const struct tcphdr *)(iph + 1);
+					printf("TCP from: %s:%d\n", ip_src, ntohs(tcph->dest));
+					break ;
+				case IPPROTO_ICMP:
+					icmph = (const struct icmphdr *)(iph + 1);
+					printf("ICMP from: %s:%d\n", ip_src, icmph->type);
+					break ;
+				case IPPROTO_UDP:
+					break ;
+					tcph = (const struct tcphdr *)(iph + 1);
+					printf("UDP from: %s:%d\n", ip_src, ntohs(tcph->dest));
+					break ;
+				default:
+					printf("Unknown Protocol from: %s\n", ip_src);
+					break;
+			}
+		}
 	}
 	return ;
 }
@@ -195,8 +216,8 @@ void	sniffer_fn(pcap_t *cap) {
 int		main(void) {
 	int					on = 1;
     char				data[BUFF_SZ] = { 0 },
-						dev_name[BUFF_SZ] = { 0 },
-						buff_err[PCAP_ERRBUF_SIZE] = { 0 };
+						dev_name[BUFF_SZ] = { 0 };
+//						buff_err[PCAP_ERRBUF_SIZE] = { 0 };
     struct iphdr		*iph = (struct iphdr *)data;
     struct tcphdr		*tcph = (struct tcphdr *)(iph + 1);
 	struct sockaddr_in	local = { 0 }, remote = {
@@ -204,7 +225,7 @@ int		main(void) {
 		.sin_addr.s_addr = inet_addr(DST_ADDR),
 		.sin_port = htons(DST_PORT)
 	};
-	pcap_t				*cap;
+//	pcap_t				*cap;
 //	pthread_t			sniffer;
 
 	if (signal(SIGINT, sig_handler) == SIG_ERR) {
@@ -242,14 +263,14 @@ int		main(void) {
         return (5);
     }
 	printf("Packet sent.\n");
-	if (!(cap = pcap_open_live(dev_name, PCAP_SNAPLEN_MAX, 0, PCAP_TO, buff_err))) {
+/*	if (!(cap = pcap_open_live(dev_name, PCAP_SNAPLEN_MAX, 0, PCAP_TO, buff_err))) {
 		fprintf(stderr, "pcap_open_live error: %s\n", buff_err);
 		return (6);
 	}
 	sniffer_fn(cap);
-	printf("Packet received.\n");
+*/	printf("Packet received.\n");
 //	pthread_join(sniffer, NULL);
 	close(sock);
-	pcap_close(cap);
+//	pcap_close(cap);
 	return (0);
 }
