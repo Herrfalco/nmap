@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/30 09:16:03 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/02 16:14:56 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/05 22:33:49 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -83,22 +83,29 @@ int		pcap_error(char *err, pcap_if_t *all_devs) {
 
 int		get_local(struct sockaddr_in *local, char *dev_name, uint64_t dev_sz) {
 	char				buff_err[PCAP_ERRBUF_SIZE];
-	pcap_if_t			*all_devs = NULL;
-	uint32_t			dev_ip;
-	uint32_t			dev_msk;
+	pcap_if_t			*all_devs, *dev;
+	struct pcap_addr	*addr = NULL;
 
 	if (pcap_findalldevs(&all_devs, buff_err))
 		pcap_error(buff_err, NULL);
-	if (!all_devs)
-		pcap_error("No interface", all_devs);
-	strncpy(dev_name, all_devs->name, dev_sz);
-	if (pcap_lookupnet(dev_name, &dev_ip, &dev_msk, buff_err))
-		pcap_error(buff_err, all_devs);
-	local->sin_family = AF_INET;
-	local->sin_port = htons(SRC_PORT);
-	local->sin_addr = *((struct in_addr *)&dev_ip);
-	pcap_freealldevs(all_devs);
-	return (0);
+
+    for (dev = all_devs; dev; dev = dev->next) {
+        if (!(dev->flags & PCAP_IF_LOOPBACK)
+				&& (dev->flags & PCAP_IF_UP)
+				&& (dev->flags & PCAP_IF_RUNNING)) {
+            for (addr = dev->addresses; addr; addr = addr->next) {
+                if (addr->addr && addr->addr->sa_family == AF_INET) {
+					strncpy(dev_name, dev->name, dev_sz);
+					local->sin_family = AF_INET;
+					local->sin_port = htons(SRC_PORT);
+					local->sin_addr = ((struct sockaddr_in *)addr->addr)->sin_addr;
+					pcap_freealldevs(all_devs);
+					return (0);
+				}
+            }
+        }
+    }
+	return (pcap_error("No valid local address", all_devs));
 }
 
 void		fill_headers(struct iphdr *iph, struct tcphdr *tcph, struct sockaddr_in local,
@@ -184,7 +191,7 @@ void	cap_handler(uint8_t *data, const struct pcap_pkthdr *pkt_hdr, const uint8_t
 			switch(iph->protocol) {
 				case IPPROTO_TCP:
 					tcph = (const struct tcphdr *)(iph + 1);
-					printf("TCP from: %s:%d\n", ip_src, ntohs(tcph->dest));
+					printf("TCP from: %s:%d\n", ip_src, ntohs(tcph->source));
 					break ;
 				case IPPROTO_ICMP:
 					icmph = (const struct icmphdr *)(iph + 1);
@@ -193,7 +200,7 @@ void	cap_handler(uint8_t *data, const struct pcap_pkthdr *pkt_hdr, const uint8_t
 				case IPPROTO_UDP:
 					break ;
 					tcph = (const struct tcphdr *)(iph + 1);
-					printf("UDP from: %s:%d\n", ip_src, ntohs(tcph->dest));
+					printf("UDP from: %s:%d\n", ip_src, ntohs(tcph->source));
 					break ;
 				default:
 					printf("Unknown Protocol from: %s\n", ip_src);
@@ -204,20 +211,11 @@ void	cap_handler(uint8_t *data, const struct pcap_pkthdr *pkt_hdr, const uint8_t
 	return ;
 }
 
-void	sniffer_fn(pcap_t *cap) {
-	while (42) {
-		if (pcap_dispatch(cap, 0, cap_handler, 0) == PCAP_ERROR) {
-			fprintf(stderr, "pcap_dispatch error: %s\n", pcap_geterr(cap));
-			return ;
-		}
-	}
-}
-
 int		main(void) {
 	int					on = 1;
     char				data[BUFF_SZ] = { 0 },
-						dev_name[BUFF_SZ] = { 0 };
-//						buff_err[PCAP_ERRBUF_SIZE] = { 0 };
+						dev_name[BUFF_SZ] = { 0 },
+						buff_err[PCAP_ERRBUF_SIZE] = { 0 };
     struct iphdr		*iph = (struct iphdr *)data;
     struct tcphdr		*tcph = (struct tcphdr *)(iph + 1);
 	struct sockaddr_in	local = { 0 }, remote = {
@@ -225,11 +223,9 @@ int		main(void) {
 		.sin_addr.s_addr = inet_addr(DST_ADDR),
 		.sin_port = htons(DST_PORT)
 	};
-//	pcap_t				*cap;
-//	pthread_t			sniffer;
+	pcap_t				*cap;
 
 
-//	CLOSE SOCK_BIS
 	if (signal(SIGINT, sig_handler) == SIG_ERR) {
         perror("Sig handler error");
         return (1);
@@ -238,10 +234,6 @@ int		main(void) {
         perror("Socket error");
         return (2);
     }
-	if ((sock_bis = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
-		perror("Socket error");
-		return (666);
-	}
 	if (setsockopt(sock, IPPROTO_IP, IP_HDRINCL, &on, sizeof(on))) {
 		close(sock);
         perror("Socket option error");
@@ -252,18 +244,9 @@ int		main(void) {
 		perror("Local error");
 		return (4);
 	}
-	if (bind(sock_bis, (struct sockaddr *)&local, sizeof(struct sockaddr_in )) < 0) {
-		perror("Bind error");
-		return (666);
-	}
+
+	printf("%s\n", inet_ntoa(local.sin_addr));
 	fill_headers(iph, tcph, local, remote, SCAN_TYPE);
-	/*
-	if (pthread_create(&sniffer, NULL, sniffer_fn, NULL)) {
-		close(sock);
-		fprintf(stderr,
-				"Sniffer creation: Fail to create thread\n");
-	}
-	*/
 	print_packet(data);
     if (sendto(sock, data,
 				sizeof(struct iphdr) + sizeof(struct tcphdr),
@@ -273,14 +256,19 @@ int		main(void) {
         return (5);
     }
 	printf("Packet sent.\n");
-/*	if (!(cap = pcap_open_live(dev_name, PCAP_SNAPLEN_MAX, 0, PCAP_TO, buff_err))) {
+	if (!(cap = pcap_open_live(dev_name, PCAP_SNAPLEN_MAX, 0, PCAP_TO, buff_err))) {
 		fprintf(stderr, "pcap_open_live error: %s\n", buff_err);
 		return (6);
 	}
-	sniffer_fn(cap);
-*/	printf("Packet received.\n");
+	while (42) {
+		if (pcap_dispatch(cap, 0, cap_handler, 0) == PCAP_ERROR) {
+			fprintf(stderr, "pcap_dispatch error: %s\n", pcap_geterr(cap));
+			return (6);
+		}
+	}
+	printf("Packet received.\n");
 //	pthread_join(sniffer, NULL);
 	close(sock);
-//	pcap_close(cap);
+	pcap_close(cap);
 	return (0);
 }
