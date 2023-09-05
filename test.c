@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/30 09:16:03 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/05 22:33:49 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/05 22:37:25 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -160,20 +160,6 @@ void		print_packet(void *packet) {
 			tcp->urg ? " URG" : ""
 		  );
 }
-/*
-	char					buff[BUFF_SZ];
-	struct iphdr			*ip = (struct iphdr *)buff;
-	struct tcphdr			*tcp = (struct tcphdr *)(ip + 1);
-
-	for (;;) {
-		if (recvfrom(sock, buff, BUFF_SZ, 0, NULL, NULL) < 0)
-			fprintf(stderr, "recv error\n");
-		if (ntohs(tcp->dest) == SRC_PORT) {
-			print_packet(buff);
-			return (NULL);
-		}
-	}
-*/
 
 void	cap_handler(uint8_t *data, const struct pcap_pkthdr *pkt_hdr, const uint8_t *pkt) {
 	const struct	ether_header	*ethh = (const struct ether_header *)pkt;
