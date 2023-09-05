@@ -37,7 +37,7 @@
 #include <pcap/pcap.h>
 #include <net/ethernet.h>
 
-int					sock;
+int					sock, sock_bis;
 
 struct				ip_pseudo_s {
 	uint32_t		src;
@@ -228,6 +228,8 @@ int		main(void) {
 //	pcap_t				*cap;
 //	pthread_t			sniffer;
 
+
+//	CLOSE SOCK_BIS
 	if (signal(SIGINT, sig_handler) == SIG_ERR) {
         perror("Sig handler error");
         return (1);
@@ -236,6 +238,10 @@ int		main(void) {
         perror("Socket error");
         return (2);
     }
+	if ((sock_bis = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
+		perror("Socket error");
+		return (666);
+	}
 	if (setsockopt(sock, IPPROTO_IP, IP_HDRINCL, &on, sizeof(on))) {
 		close(sock);
         perror("Socket option error");
@@ -245,6 +251,10 @@ int		main(void) {
 		close(sock);
 		perror("Local error");
 		return (4);
+	}
+	if (bind(sock_bis, (struct sockaddr *)&local, sizeof(struct sockaddr_in )) < 0) {
+		perror("Bind error");
+		return (666);
 	}
 	fill_headers(iph, tcph, local, remote, SCAN_TYPE);
 	/*
