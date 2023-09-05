@@ -18,6 +18,9 @@
 #define DST_ADDR			/*"91.211.165.100"*/"127.0.0.1"
 #define MAX_WIN				0xff
 #define SCAN_TYPE			FIN
+#define PCAP_SNAPLEN_MAX	65535
+#define PCAP_TO				5
+#define ETH_HDR_SZ			14
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,6 +35,7 @@
 #include <errno.h>
 #include <pthread.h>
 #include <pcap/pcap.h>
+#include <net/ethernet.h>
 
 int					sock;
 
@@ -77,12 +81,11 @@ int		pcap_error(char *err, pcap_if_t *all_devs) {
 	return (-1);
 }
 
-int		get_local(struct in_addr *local, in_port_t *port, char *dev_name, uint64_t dev_sz) {
+int		get_local(struct sockaddr_in *local, char *dev_name, uint64_t dev_sz) {
 	char				buff_err[PCAP_ERRBUF_SIZE];
 	pcap_if_t			*all_devs = NULL;
 	uint32_t			dev_ip;
 	uint32_t			dev_msk;
-//	pcap_t				pcap;
 
 	if (pcap_findalldevs(&all_devs, buff_err))
 		pcap_error(buff_err, NULL);
@@ -90,10 +93,10 @@ int		get_local(struct in_addr *local, in_port_t *port, char *dev_name, uint64_t 
 		pcap_error("No interface", all_devs);
 	strncpy(dev_name, all_devs->name, dev_sz);
 	if (pcap_lookupnet(dev_name, &dev_ip, &dev_msk, buff_err))
-		pcap_error(buff_err, all_devs),
-	*port = htons(SRC_PORT);
-	printf("PORT: %d\n", *port);
-	*local = *((struct in_addr *)&dev_ip);
+		pcap_error(buff_err, all_devs);
+	local->sin_family = AF_INET;
+	local->sin_port = htons(SRC_PORT);
+	local->sin_addr = *((struct in_addr *)&dev_ip);
 	pcap_freealldevs(all_devs);
 	return (0);
 }
@@ -133,8 +136,8 @@ void		print_packet(void *packet) {
 	struct iphdr			*ip = (struct iphdr *)packet;
 	struct tcphdr			*tcp = (struct tcphdr *)(ip + 1);
 
-	printf("seq: %d ", ntohs(tcp->seq));
-	printf("ack_seq: %d ", ntohs(tcp->ack_seq));
+	printf("seq: %d ", ntohl(tcp->seq));
+	printf("ack_seq: %d ", ntohl(tcp->ack_seq));
 	printf("%s::%d > ",
 			inet_ntoa(*(struct in_addr *)&ip->saddr),
 			ntohs(tcp->source));
@@ -165,22 +168,43 @@ void		print_packet(void *packet) {
 	}
 */
 
-void	*sniffer_fn(void *) {
-	return (NULL);
+void	cap_handler(uint8_t *data, const struct pcap_pkthdr *pkt_hdr, const uint8_t *pkt) {
+	const struct	ether_header	*ethh = (const struct ether_header *)pkt;
+	const struct	iphdr			*iph = (const struct iphdr *)pkt + ETH_HDR_SZ;
+
+	char	ip_dst[INET_ADDRSTRLEN];
+
+	(void)pkt_hdr;
+	(void)data;
+	if (ntohs(ethh->ether_type) == ETHERTYPE_IP && iph->protocol == IPPROTO_ICMP) {
+		inet_ntop(AF_INET, &(iph->daddr), ip_dst, INET_ADDRSTRLEN);
+		printf("%s\n", ip_dst);
+	}
+	return ;
+}
+
+void	sniffer_fn(pcap_t *cap) {
+	while (42) {
+		if (pcap_dispatch(cap, 0, cap_handler, 0) == PCAP_ERROR) {
+			fprintf(stderr, "pcap_dispatch error: %s\n", pcap_geterr(cap));
+			return ;
+		}
+	}
 }
 
 int		main(void) {
 	int					on = 1;
-    char				data[BUFF_SZ] = { 0 }, dev_name[BUFF_SZ] = { 0 };
+    char				data[BUFF_SZ] = { 0 },
+						dev_name[BUFF_SZ] = { 0 },
+						buff_err[PCAP_ERRBUF_SIZE] = { 0 };
     struct iphdr		*iph = (struct iphdr *)data;
     struct tcphdr		*tcph = (struct tcphdr *)(iph + 1);
-	struct sockaddr_in	local = {
-		.sin_family = AF_INET,
-	},	remote = {
+	struct sockaddr_in	local = { 0 }, remote = {
 		.sin_family = AF_INET,
 		.sin_addr.s_addr = inet_addr(DST_ADDR),
 		.sin_port = htons(DST_PORT)
 	};
+	pcap_t				*cap;
 //	pthread_t			sniffer;
 
 	if (signal(SIGINT, sig_handler) == SIG_ERR) {
@@ -196,7 +220,7 @@ int		main(void) {
         perror("Socket option error");
         return (3);
     }
-	if (get_local(&local.sin_addr, &local.sin_port, dev_name, BUFF_SZ)) {
+	if (get_local(&local, dev_name, BUFF_SZ)) {
 		close(sock);
 		perror("Local error");
 		return (4);
@@ -215,12 +239,17 @@ int		main(void) {
 				0, (struct sockaddr *)&remote,
 				sizeof(struct sockaddr_in)) == -1) {
         perror("Sendto error");
-        return (1);
+        return (5);
     }
 	printf("Packet sent.\n");
-	sniffer_fn(NULL);
+	if (!(cap = pcap_open_live(dev_name, PCAP_SNAPLEN_MAX, 0, PCAP_TO, buff_err))) {
+		fprintf(stderr, "pcap_open_live error: %s\n", buff_err);
+		return (6);
+	}
+	sniffer_fn(cap);
 	printf("Packet received.\n");
 //	pthread_join(sniffer, NULL);
 	close(sock);
+	pcap_close(cap);
 	return (0);
 }
