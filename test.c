@@ -14,8 +14,8 @@
 #define MIN_PORT			49152
 #define	MAX_PORT			65536	
 #define SRC_PORT			55555
-#define DST_PORT			80
-#define DST_ADDR			/*"91.211.165.100"*/"1.1.1.1"
+#define DST_PORT			666
+#define DST_ADDR			/*"91.211.165.100"*/"192.168.1.39"
 #define MAX_WIN				0xff
 #define SCAN_TYPE			SYN
 #define PCAP_SNAPLEN_MAX	65535
@@ -37,7 +37,7 @@
 #include <pcap/pcap.h>
 #include <net/ethernet.h>
 
-int					sock, sock_bis;
+int					sock;
 
 struct				ip_pseudo_s {
 	uint32_t		src;
@@ -181,7 +181,9 @@ void	cap_handler(uint8_t *data, const struct pcap_pkthdr *pkt_hdr, const uint8_t
 					break ;
 				case IPPROTO_ICMP:
 					icmph = (const struct icmphdr *)(iph + 1);
-					printf("ICMP from: %s:%d\n", ip_src, icmph->type);
+					iph = (const struct iphdr *)(icmph + 1);
+					tcph = (const struct tcphdr *)(iph + 1);
+					printf("ICMP from: %s:%d\n", ip_src, ntohs(tcph->dest));
 					break ;
 				case IPPROTO_UDP:
 					break ;
@@ -189,7 +191,7 @@ void	cap_handler(uint8_t *data, const struct pcap_pkthdr *pkt_hdr, const uint8_t
 					printf("UDP from: %s:%d\n", ip_src, ntohs(tcph->source));
 					break ;
 				default:
-					printf("Unknown Protocol from: %s\n", ip_src);
+					printf("Unknown Protocol: %d from: %s\n", iph->protocol, ip_src);
 					break;
 			}
 		}
@@ -230,7 +232,10 @@ int		main(void) {
 		perror("Local error");
 		return (4);
 	}
-
+	if (!(cap = pcap_open_live(dev_name, PCAP_SNAPLEN_MAX, 0, PCAP_TO, buff_err))) {
+		fprintf(stderr, "pcap_open_live error: %s\n", buff_err);
+		return (6);
+	}
 	printf("%s\n", inet_ntoa(local.sin_addr));
 	fill_headers(iph, tcph, local, remote, SCAN_TYPE);
 	print_packet(data);
@@ -242,10 +247,6 @@ int		main(void) {
         return (5);
     }
 	printf("Packet sent.\n");
-	if (!(cap = pcap_open_live(dev_name, PCAP_SNAPLEN_MAX, 0, PCAP_TO, buff_err))) {
-		fprintf(stderr, "pcap_open_live error: %s\n", buff_err);
-		return (6);
-	}
 	while (42) {
 		if (pcap_dispatch(cap, 0, cap_handler, 0) == PCAP_ERROR) {
 			fprintf(stderr, "pcap_dispatch error: %s\n", pcap_geterr(cap));
