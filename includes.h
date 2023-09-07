@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/12 15:00:44 by fcadet            #+#    #+#             */
-/*   Updated: 2023/08/12 15:01:19 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/06 19:21:01 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <string.h>
 
 #define				MAX_PORTS		1024
 #define				MAX_PORT_VAL	65535
@@ -26,5 +27,6 @@
 #define				MAX_THRDS		250
 #define				FLAGS_NB		6
 #define				SCANS_NB		6
+#define				BUFF_SZ			1024
 
 #endif // INCLUDES_H

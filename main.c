@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/07 15:57:25 by fcadet            #+#    #+#             */
-/*   Updated: 2023/08/30 09:16:56 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/07 12:10:15 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,7 +42,10 @@ typedef struct			glob_s {
 }						glob_t;
 
 int		main(int, char **argv) {
+	char		filters[BUFF_SZ * MAX_THRDS] = { 0 };
+
 	if (parse(argv))
 		return (0);
+	get_filters(filters, 100);
 	return (0);
 }

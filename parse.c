@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/12 14:59:20 by fcadet            #+#    #+#             */
-/*   Updated: 2023/08/12 15:16:20 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/07 12:43:58 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,20 +38,47 @@ static uint8_t	OPT_EXCL[] = {
 	F_HELP,											// F_SCAN
 };
 
+int				get_filters(char *filters, uint64_t nb) {
+	uint64_t		i, j;
+	uint16_t		start;
+	uint8_t			range = 0;
+
+	(void)filters;
+	for (i = 0; nb && i < OPTS.ip_nb; ++i) {
+		range = 0;
+		printf("(host %s and (", inet_ntoa(*(struct in_addr *)&OPTS.ips[i]));
+		for (j = 0; nb && j < OPTS.port_nb; ++j, --nb) {
+			if (nb == 1 || j + 1 == OPTS.port_nb || OPTS.ports[j + 1] - OPTS.ports[j] > 1) {
+				if (range)
+					printf("portrange %d-%d or ", start, OPTS.ports[j]);
+				else
+					printf("port %d or ", OPTS.ports[j]);
+				range = 0;
+			} else if (!range) {
+				start = OPTS.ports[j];
+				range = 1;
+			}
+		}
+		printf("\b\b\b\b)) or ");
+	}
+	printf("\b\b\b\b    \n");
+	return (0);
+}
+
 static char		*parse_flag(char *arg, parse_fn_t *parse_fn);
 
 static void		parse_print(void) {
 	struct in_addr	ip = { 0 };
 	uint64_t		i;
 	uint16_t		lst;
-	uint8_t			range;
+	uint8_t			range = 0;
 
 	printf("help: %s\n", OPTS.flag & F_HELP ? "true" : "false");
 	printf("ports: %d", (lst = *OPTS.ports));
 	for (i = 1; i < OPTS.port_nb; lst = OPTS.ports[i], ++i) {
 		if (OPTS.ports[i] - lst > 1) {
 			if (range)
-				printf("-%d,%d", lst + 1, OPTS.ports[i]);
+				printf("-%d,%d", lst, OPTS.ports[i]);
 			else
 				printf(",%d", OPTS.ports[i]);
 			range = 0;
@@ -59,7 +86,7 @@ static void		parse_print(void) {
 			range = 1;
 	}
 	if (range)
-		printf("-%d", lst + 1);
+		printf("-%d", lst);
 	printf(" (%ld ports)\n", OPTS.port_nb);
 	printf("ips: ");
 	for (i = 0; i < OPTS.ip_nb; ++i) {
@@ -80,15 +107,13 @@ static char		*save_port(uint32_t start, uint32_t end, uint8_t num, uint8_t range
 	if (range) {
 		if (end <= start)
 			return ("Invalid port range");
-	} else {
+	} else
 		start = end;
-		++end;
-	}
 	if (OPTS.port_nb && start <= OPTS.ports[OPTS.port_nb - 1])
 		return ("Not ascending ports");
-	if (OPTS.port_nb + (end - start) > MAX_PORTS)
+	if (OPTS.port_nb + (end + 1 - start) > MAX_PORTS)
 		return ("Invalid number of ports");
-	for (; start < end; ++start)
+	for (; start <= end; ++start)
 		OPTS.ports[OPTS.port_nb++] = start;
 	return (NULL);
 }
