@@ -10,34 +10,14 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#define BUFF_SZ				4096
-#define MIN_PORT			49152
-#define	MAX_PORT			65536	
 #define SRC_PORT			55555
-#define DST_PORT			80
-#define DST_ADDR			/*"91.211.165.100"*/"1.1.1.1"
-#define MAX_WIN				0xff
+#define DST_PORT			666
+#define DST_ADDR			/*"91.211.165.100"*/"192.168.1.39"
 #define SCAN_TYPE			SYN
-#define PCAP_SNAPLEN_MAX	65535
-#define PCAP_TO				-1
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <netinet/ip.h>
-#include <netinet/tcp.h>
-#include <netinet/ip_icmp.h>
-#include <net/if.h>
-#include <signal.h>
-#include <ifaddrs.h>
-#include <errno.h>
-#include <pthread.h>
-#include <pcap/pcap.h>
-#include <net/ethernet.h>
+#include "utils.h"
 
-int					sock, sock_bis;
+int					sock;
 
 struct				ip_pseudo_s {
 	uint32_t		src;
@@ -173,7 +153,7 @@ void	cap_handler(uint8_t *data, const struct pcap_pkthdr *pkt_hdr, const uint8_t
 	(void)data;
 	if (ntohs(ethh->ether_type) == ETHERTYPE_IP) {
 		inet_ntop(AF_INET, &(iph->saddr), ip_src, INET_ADDRSTRLEN);
-		if (!strcmp(ip_src, DST_ADDR)) {
+		if (!str_n_cmp(ip_src, DST_ADDR, INET_ADDRSTRLEN)) {
 			switch(iph->protocol) {
 				case IPPROTO_TCP:
 					tcph = (const struct tcphdr *)(iph + 1);
@@ -181,7 +161,9 @@ void	cap_handler(uint8_t *data, const struct pcap_pkthdr *pkt_hdr, const uint8_t
 					break ;
 				case IPPROTO_ICMP:
 					icmph = (const struct icmphdr *)(iph + 1);
-					printf("ICMP from: %s:%d\n", ip_src, icmph->type);
+					iph = (const struct iphdr *)(icmph + 1);
+					tcph = (const struct tcphdr *)(iph + 1);
+					printf("ICMP from: %s:%d\n", ip_src, ntohs(tcph->dest));
 					break ;
 				case IPPROTO_UDP:
 					break ;
@@ -189,7 +171,7 @@ void	cap_handler(uint8_t *data, const struct pcap_pkthdr *pkt_hdr, const uint8_t
 					printf("UDP from: %s:%d\n", ip_src, ntohs(tcph->source));
 					break ;
 				default:
-					printf("Unknown Protocol from: %s\n", ip_src);
+					printf("Unknown Protocol: %d from: %s\n", iph->protocol, ip_src);
 					break;
 			}
 		}
@@ -211,11 +193,12 @@ int		main(void) {
 	};
 	pcap_t				*cap;
 
-
+//	SIGACTION | NO_THR
 	if (signal(SIGINT, sig_handler) == SIG_ERR) {
         perror("Sig handler error");
         return (1);
     }
+//	SOCK INIT | NO_THR
     if ((sock = socket(AF_INET, SOCK_RAW, IPPROTO_TCP)) < 0) {
         perror("Socket error");
         return (2);
@@ -225,12 +208,18 @@ int		main(void) {
         perror("Socket option error");
         return (3);
     }
+//	LOCAL INIT | NO_THR
 	if (get_local(&local, dev_name, BUFF_SZ)) {
 		close(sock);
 		perror("Local error");
 		return (4);
 	}
-
+//	PCAP INIT (FILTERS ?) | THR
+	if (!(cap = pcap_open_live(dev_name, PCAP_SNAPLEN_MAX, 0, PCAP_TIME_OUT, buff_err))) {
+		fprintf(stderr, "pcap_open_live error: %s\n", buff_err);
+		return (6);
+	}
+//	CREATE + SEND TCP PACKET | NO_THR
 	printf("%s\n", inet_ntoa(local.sin_addr));
 	fill_headers(iph, tcph, local, remote, SCAN_TYPE);
 	print_packet(data);
@@ -242,10 +231,7 @@ int		main(void) {
         return (5);
     }
 	printf("Packet sent.\n");
-	if (!(cap = pcap_open_live(dev_name, PCAP_SNAPLEN_MAX, 0, PCAP_TO, buff_err))) {
-		fprintf(stderr, "pcap_open_live error: %s\n", buff_err);
-		return (6);
-	}
+//	RECEPTION | THR
 	while (42) {
 		if (pcap_dispatch(cap, 0, cap_handler, 0) == PCAP_ERROR) {
 			fprintf(stderr, "pcap_dispatch error: %s\n", pcap_geterr(cap));
@@ -253,7 +239,7 @@ int		main(void) {
 		}
 	}
 	printf("Packet received.\n");
-//	pthread_join(sniffer, NULL);
+//	CLEAN | THR
 	close(sock);
 	pcap_close(cap);
 	return (0);
