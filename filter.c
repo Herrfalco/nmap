@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/09 16:37:22 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/09 18:35:19 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/09 20:11:00 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -53,9 +53,9 @@ static char			*filter_add_ports(str_t *str, uint64_t *cnt, uint64_t *nb) {
 		if (*nb <= 1 || *cnt + 1 >= OPTS.port_nb
 				|| OPTS.ports[*cnt + 1] - OPTS.ports[*cnt] > 1) {
 			if (range)
-				sprintf(buff, "portrange %d-%d or ", start, OPTS.ports[*cnt]);
+				sprintf(buff, "(src portrange %d-%d) or ", start, OPTS.ports[*cnt]);
 			else
-				sprintf(buff, "port %d or ", OPTS.ports[*cnt]);
+				sprintf(buff, "(src port %d) or ", OPTS.ports[*cnt]);
 			if ((err = str_add(str, buff)))
 				return (err);
 			range = 0;
@@ -75,7 +75,7 @@ static char			*filter_add_addr(str_t *str, uint64_t *cnt, uint64_t nb) {
 	if (!nb)
 		return (NULL);
 	while (nb) {
-		if ((err = str_add(str, "(host "))
+		if ((err = str_add(str, "(src host "))
 				|| (err = str_add(str, inet_ntoa(*(struct in_addr *)&OPTS.ips[*cnt])))
 				|| (err = str_add(str, " and "))
 				|| (err = filter_add_ports(str, cnt + 1, &nb)))
