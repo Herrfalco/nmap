@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/12 14:59:20 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/07 12:43:58 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/09 16:49:16 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,7 +20,7 @@ static char		*SCAN_NAMES[] = {
 	"SYN", "NULL", "ACK", "FIN", "XMAX", "UDP",
 };
 
-static opts_t	OPTS = { 
+opts_t			OPTS = { 
 	.ports = { 0 },
 	.port_nb = 0,
 	.ips = { 0 },
@@ -37,33 +37,6 @@ static uint8_t	OPT_EXCL[] = {
 	F_HELP,											// F_SPEEDUP
 	F_HELP,											// F_SCAN
 };
-
-int				get_filters(char *filters, uint64_t nb) {
-	uint64_t		i, j;
-	uint16_t		start;
-	uint8_t			range = 0;
-
-	(void)filters;
-	for (i = 0; nb && i < OPTS.ip_nb; ++i) {
-		range = 0;
-		printf("(host %s and (", inet_ntoa(*(struct in_addr *)&OPTS.ips[i]));
-		for (j = 0; nb && j < OPTS.port_nb; ++j, --nb) {
-			if (nb == 1 || j + 1 == OPTS.port_nb || OPTS.ports[j + 1] - OPTS.ports[j] > 1) {
-				if (range)
-					printf("portrange %d-%d or ", start, OPTS.ports[j]);
-				else
-					printf("port %d or ", OPTS.ports[j]);
-				range = 0;
-			} else if (!range) {
-				start = OPTS.ports[j];
-				range = 1;
-			}
-		}
-		printf("\b\b\b\b)) or ");
-	}
-	printf("\b\b\b\b    \n");
-	return (0);
-}
 
 static char		*parse_flag(char *arg, parse_fn_t *parse_fn);
 

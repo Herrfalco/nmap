@@ -6,11 +6,11 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/07 15:57:25 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/07 12:10:15 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/09 18:22:29 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "parse.h"
+#include "filter.h"
 
 typedef enum			result_e {
 	R_NONE,
@@ -42,10 +42,15 @@ typedef struct			glob_s {
 }						glob_t;
 
 int		main(int, char **argv) {
-	char		filters[BUFF_SZ * MAX_THRDS] = { 0 };
+	filts_t			filt_lst;
+	char			*err;
 
 	if (parse(argv))
 		return (0);
-	get_filters(filters, 100);
+	if ((err = filter_lst_init(&filt_lst)))
+		printf("Error: %s\n", err);
+	for (uint64_t i = 0; filt_lst.strs && i < filt_lst.sz; ++i)
+		printf("thread %ld:%s\n\n", i + 1, filt_lst.strs[i].data);
+	filter_lst_destroy(&filt_lst);
 	return (0);
 }

@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/12 15:01:52 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/07 00:10:20 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/09 16:46:40 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,7 +46,8 @@ typedef struct		opts_s {
 
 typedef char		*(*parse_fn_t)(char *);
 
+extern opts_t		OPTS;
+
 int					parse(char **argv);
-int					get_filters(char *filters, uint64_t nb);
 
 #endif // PARSE_H

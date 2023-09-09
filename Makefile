@@ -1,6 +1,7 @@
 NAME	=	ft_nmap
 SRCS	=	main.c \
 		parse.c \
+		filter.c \
 		utils.c
 OBJS	=	$(SRCS:.c=.o)
 CC	=	gcc
