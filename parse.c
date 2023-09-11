@@ -276,7 +276,7 @@ static void		init_ports(void) {
 		OPTS.ports[OPTS.port_nb] = OPTS.port_nb + 1;
 }
 
-int				parse(char **argv) {
+int				parse(char **argv, opts_t **opts) {
 	char		*error;
 
 	if ((error = parse_args(++argv))
@@ -289,5 +289,6 @@ int				parse(char **argv) {
 	if (!(OPTS.flag & F_PORTS))
 		init_ports();
 	parse_print();
+	*opts = &OPTS;
 	return (0);
 }

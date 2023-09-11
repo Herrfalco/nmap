@@ -46,6 +46,6 @@ typedef struct		opts_s {
 
 typedef char		*(*parse_fn_t)(char *);
 
-int					parse(char **argv);
+int					parse(char **argv, opts_t **opts);
 
 #endif // PARSE_H

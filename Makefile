@@ -4,7 +4,8 @@ SRCS	=	main.c \
 		utils.c
 OBJS	=	$(SRCS:.c=.o)
 CC	=	gcc
-CFLAGS	=	-Wall -Wextra -Werror
+CFLAGS	=	-Wall -Wextra -Werror -lpcap
+LIBS = -lpcap
 
 all	:	$(NAME)
 

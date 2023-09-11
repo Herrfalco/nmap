@@ -178,12 +178,17 @@ void	cap_handler(uint8_t *data, const struct pcap_pkthdr *pkt_hdr, const uint8_t
 	}
 	return ;
 }
-
+/*
+int		get_filters(char **filters, opts_t *opts) {
+	
+}
+*/
 int		main(void) {
 	int					on = 1;
     char				data[BUFF_SZ] = { 0 },
 						dev_name[BUFF_SZ] = { 0 },
-						buff_err[PCAP_ERRBUF_SIZE] = { 0 };
+						buff_err[PCAP_ERRBUF_SIZE] = { 0 },
+						filters[MAX_THRDS][BUFF_SZ];
     struct iphdr		*iph = (struct iphdr *)data;
     struct tcphdr		*tcph = (struct tcphdr *)(iph + 1);
 	struct sockaddr_in	local = { 0 }, remote = {
