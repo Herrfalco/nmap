@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/12 15:01:52 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/09 16:46:40 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/11 21:44:41 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,8 +29,9 @@ typedef enum		scan_e {
 	ST_NULL = 0x2,
 	ST_ACK = 0x4,
 	ST_FIN = 0x8,
-	ST_XMAX = 0x10,
+	ST_XMAS = 0x10,
 	ST_UDP = 0x20,
+	ST_MAX = 0x30,
 	ST_ALL = 0x3f,
 }					scan_t;
 
@@ -46,7 +47,8 @@ typedef struct		opts_s {
 
 typedef char		*(*parse_fn_t)(char *);
 
-int					parse(char **argv, opts_t **opts);
+char				*parse(char **argv);
+void				parse_print(void);
 
 extern opts_t		OPTS;
 

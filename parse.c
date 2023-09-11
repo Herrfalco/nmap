@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/12 14:59:20 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/09 16:49:16 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/11 09:46:52 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,7 +40,7 @@ static uint8_t	OPT_EXCL[] = {
 
 static char		*parse_flag(char *arg, parse_fn_t *parse_fn);
 
-static void		parse_print(void) {
+void			parse_print(void) {
 	struct in_addr	ip = { 0 };
 	uint64_t		i;
 	uint16_t		lst;
@@ -254,19 +254,22 @@ static char		*parse_check(void) {
 	return (OPTS.ip_nb || OPTS.flag & F_HELP ? NULL : "No IP specified");
 }
 
-static uint8_t	disp_help(uint8_t error) {
-	if (!error)
-		printf("FT_NMAP v1.0 - 42 Paris's project, by fcadet & apitoise (9/2023)\n\n");
-	printf(	"Usage:    ft_nmap [--ip IP] or [--file FILE] or [--help]\n\n"
-			"Options:  --help       display help informations\n"
-			"          --ports      ascending ports or range of ports (max 1024)\n"
-			"						(e.g. 1,10-12,17,19,20-30)\n"
-			"          --ip         target IP address (IPV4)\n"
-			"          --file       file containing a list of IP address (upto 512)\n"
-			"          --speedup    number of aditionnal threads (upto 250))\n"
-			"          --scan       scan types combined with a '+'\n"
-			"                       (SYN, NULL, ACK, FIN, XMAX, UDP)\n");
-	return (error);
+static char		*disp_help(char *err) {
+	static char		buff[BUFF_SZ * 2] = { 0 },
+					*title = "FT_NMAP v1.0 - 42 Paris's project, by fcadet & apitoise (9/2023)",
+					*help = "Usage:    ft_nmap [--ip IP] or [--file FILE] or [--help]\n\n"
+							"Options:  --help       display help informations\n"
+							"          --ports      ascending ports or range of ports (max 1024)\n"
+							"						(e.g. 1,10-12,17,19,20-30)\n"
+							"          --ip         target IP address (IPV4)\n"
+							"          --file       file containing a list of IP address (upto 512)\n"
+							"          --speedup    number of aditionnal threads (upto 250))\n"
+							"          --scan       scan types combined with a '+'\n"
+							"                       (SYN, NULL, ACK, FIN, XMAX, UDP)\n";
+
+	snprintf(buff, BUFF_SZ * 2, "%s\n\n%s",
+			err ? err : title, help);
+	return (buff);
 }
 
 static void		init_ports(void) {
@@ -274,19 +277,16 @@ static void		init_ports(void) {
 		OPTS.ports[OPTS.port_nb] = OPTS.port_nb + 1;
 }
 
-int				parse(char **argv, opts_t **opts) {
+char			*parse(char **argv) {
 	char		*error;
 
 	if ((error = parse_args(++argv))
 			|| (error = parse_check())) {
-		fprintf(stderr, "Error:    %s\n\n", error);
-		return (disp_help(1));
-	}
-	if (OPTS.flag & F_HELP)
-		return (disp_help(0));
-	if (!(OPTS.flag & F_PORTS))
+		return (disp_help(error));
+	} else if (OPTS.flag & F_HELP) {
+		printf("%s\n", disp_help(NULL));
+		return (NULL);
+	} else if (!(OPTS.flag & F_PORTS))
 		init_ports();
-	parse_print();
-	*opts = &OPTS;
-	return (0);
+	return (NULL);
 }

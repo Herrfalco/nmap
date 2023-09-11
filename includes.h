@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/12 15:00:44 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/07 12:46:11 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/11 22:04:04 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,6 +21,7 @@
 #include <arpa/inet.h>
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
+#include <netinet/udp.h>
 #include <netinet/ip_icmp.h>
 #include <net/if.h>
 #include <signal.h>

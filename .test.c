@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/30 09:16:03 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/05 22:37:25 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/11 09:25:18 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -178,11 +178,7 @@ void	cap_handler(uint8_t *data, const struct pcap_pkthdr *pkt_hdr, const uint8_t
 	}
 	return ;
 }
-/*
-int		get_filters(char **filters, opts_t *opts) {
-	
-}
-*/
+
 int		main(void) {
 	int					on = 1;
     char				data[BUFF_SZ] = { 0 },
