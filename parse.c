@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/12 14:59:20 by fcadet            #+#    #+#             */
-/*   Updated: 2023/08/12 15:16:20 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/09 16:49:16 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,7 +20,7 @@ static char		*SCAN_NAMES[] = {
 	"SYN", "NULL", "ACK", "FIN", "XMAX", "UDP",
 };
 
-static opts_t	OPTS = { 
+opts_t			OPTS = { 
 	.ports = { 0 },
 	.port_nb = 0,
 	.ips = { 0 },
@@ -44,14 +44,14 @@ static void		parse_print(void) {
 	struct in_addr	ip = { 0 };
 	uint64_t		i;
 	uint16_t		lst;
-	uint8_t			range;
+	uint8_t			range = 0;
 
 	printf("help: %s\n", OPTS.flag & F_HELP ? "true" : "false");
 	printf("ports: %d", (lst = *OPTS.ports));
 	for (i = 1; i < OPTS.port_nb; lst = OPTS.ports[i], ++i) {
 		if (OPTS.ports[i] - lst > 1) {
 			if (range)
-				printf("-%d,%d", lst + 1, OPTS.ports[i]);
+				printf("-%d,%d", lst, OPTS.ports[i]);
 			else
 				printf(",%d", OPTS.ports[i]);
 			range = 0;
@@ -59,7 +59,7 @@ static void		parse_print(void) {
 			range = 1;
 	}
 	if (range)
-		printf("-%d", lst + 1);
+		printf("-%d", lst);
 	printf(" (%ld ports)\n", OPTS.port_nb);
 	printf("ips: ");
 	for (i = 0; i < OPTS.ip_nb; ++i) {
@@ -80,15 +80,13 @@ static char		*save_port(uint32_t start, uint32_t end, uint8_t num, uint8_t range
 	if (range) {
 		if (end <= start)
 			return ("Invalid port range");
-	} else {
+	} else
 		start = end;
-		++end;
-	}
 	if (OPTS.port_nb && start <= OPTS.ports[OPTS.port_nb - 1])
 		return ("Not ascending ports");
-	if (OPTS.port_nb + (end - start) > MAX_PORTS)
+	if (OPTS.port_nb + (end + 1 - start) > MAX_PORTS)
 		return ("Invalid number of ports");
-	for (; start < end; ++start)
+	for (; start <= end; ++start)
 		OPTS.ports[OPTS.port_nb++] = start;
 	return (NULL);
 }

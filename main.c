@@ -6,11 +6,11 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/07 15:57:25 by fcadet            #+#    #+#             */
-/*   Updated: 2023/08/30 09:16:56 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/09 18:22:29 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "parse.h"
+#include "filter.h"
 
 struct				ip_pseudo_s {
 	uint32_t		src;
@@ -95,7 +95,6 @@ int		sock_init(void) {
 		perror("setsockopt():");
 		return (2);
 	}
-	return (0);
 }
 
 int		pcap_error(char *err, pcap_if_t *all_devs) {
@@ -352,3 +351,19 @@ int		main(void) {
 }
 
 */
+/*
+int		main(int, char **argv) {
+	filts_t			filt_lst;
+	char			*err;
+
+	if (parse(argv))
+		return (0);
+	if ((err = filter_lst_init(&filt_lst)))
+		printf("Error: %s\n", err);
+	for (uint64_t i = 0; filt_lst.strs && i < filt_lst.sz; ++i)
+		printf("thread %ld:%s\n\n", i + 1, filt_lst.strs[i].data);
+	filter_lst_destroy(&filt_lst);
+	return (0);
+}
+*/
+
