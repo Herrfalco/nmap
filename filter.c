@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/09 16:37:22 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/12 08:24:49 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/12 14:52:31 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -54,9 +54,7 @@ char				*filter_init(filt_t *filt, job_t *job) {
 				range = 1;
 			}
 		}
-		filt->sz -= 4;
-		filt->data[filt->sz] = '\0';
-		if ((err = filt_add(filt, ") or ")))
+		if ((err = filt_add(filt, "icmp) or ")))
 			return (err);
 	}
 	filt->sz -= 4;
