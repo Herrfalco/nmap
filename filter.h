@@ -6,26 +6,26 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/09 16:37:49 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/09 16:41:47 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/12 09:30:27 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef FILTER_H
 #define FILTER_H
 
-#include "parse.h"
+#include "packet.h"
 
-typedef struct		str_s {
+typedef struct		filt_s {
 	char			*data;
 	uint64_t		sz;
-}					str_t;
+}					filt_t;
 
-typedef	struct		filts_s {
-	str_t			*strs;
-	uint64_t		sz;
-}					filts_t;
+typedef struct	job_s {
+	uint64_t	idx;
+	uint64_t	nb;
+}				job_t;
 
-char				*filter_lst_init(filts_t *filts);
-void				filter_lst_destroy(filts_t *filts);
+char			*filter_init(filt_t *filt, job_t *job);
+void			filter_destroy(filt_t *filt);
 
 #endif // FILTER_H

@@ -6,11 +6,9 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/11 14:15:52 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/11 14:17:10 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/12 09:18:28 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
-
-
 
 int		cap_init(data_t *data) {
 	char		buff_err[BUFF_SZ];
@@ -21,13 +19,6 @@ int		cap_init(data_t *data) {
 		return (1);
 	}
 	return (0);
-}
-
-int		pcap_error(char *err, pcap_if_t *all_devs) {
-	fprintf(stderr, "pcap(): %s\n", err);
-	if (all_devs)
-		pcap_freealldevs(all_devs);
-	return (1);
 }
 
 void	cap_handler(uint8_t *data, const struct pcap_pkthdr *pkt_hdr, const uint8_t *pkt) {
