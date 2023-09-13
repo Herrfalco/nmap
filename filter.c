@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/09 16:37:22 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/12 15:20:52 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/13 13:22:08 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,14 +36,12 @@ char				*filter_init(filt_t *filt, job_t *job) {
 	filt->sz = 0;
 	if (!job->nb)
 		return (NULL);
-	printf("stop: %d\n", stop);
-	for (; stop; ++i, j = 0) {
-	printf("OK\n");
+	for (; !stop; ++i, j = 0) {
 		if ((err = filt_add(filt, "(src host "))
 				|| (err = filt_add(filt, inet_ntoa(*(struct in_addr *)&OPTS.ips[i])))
-				|| (err = filt_add(filt, " and ")))
+				|| (err = filt_add(filt, " and (")))
 			return (err);
-		for (; stop || j < OPTS.port_nb; ++j) {
+		for (; !stop && j < OPTS.port_nb; ++j) {
 			if ((i * OPTS.port_nb + j) >= max)
 				stop = 1;
 			if (stop || j + 1 >= OPTS.port_nb || OPTS.ports[j + 1] - OPTS.ports[j] > 1) {
@@ -59,12 +57,12 @@ char				*filter_init(filt_t *filt, job_t *job) {
 				range = 1;
 			}
 		}
-		if ((err = filt_add(filt, "icmp) or ")))
+		if ((err = filt_add(filt, "icmp)) or ")))
 			return (err);
 	}
 	filt->sz -= 4;
 	filt->data[filt->sz] = '\0';
-	return (filt_add(filt, ")"));
+	return (NULL);
 }
 
 void			filter_print(filt_t *filt) {
