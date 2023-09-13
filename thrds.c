@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/11 20:26:04 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/12 20:34:39 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/13 13:28:09 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,6 +34,7 @@ char				*thrds_init(void) {
 	return (NULL);
 }
 
+/*
 static char			*thrds_send(thrds_arg_t *args) {
 	uint8_t					data[BUFF_SZ];
 	packet_t				packet;
@@ -67,6 +68,7 @@ static void			thrds_recv(thrds_arg_t *args, const struct pcap_pkthdr *pkt_hdr, c
 	(void)pkt_hdr;
 	thrds_print_wrapper(args, (print_fn_t)packet_print, ((struct ether_header *)pkt) + 1);
 }
+*/
 
 static int64_t		thrds_run(thrds_arg_t *args) {
 	filt_t				filt;
@@ -79,6 +81,10 @@ static int64_t		thrds_run(thrds_arg_t *args) {
 	if ((args->err_ptr = filter_init(&filt, &args->job)))
 		return (-1);
 	thrds_print_wrapper(args, (print_fn_t )filter_print, &filt);
+
+	(void)fp;
+	return (0);
+	/*
 	if (pcap_compile(cap, &fp, filt.data, 1,
 				PCAP_NETMASK_UNKNOWN) == PCAP_ERROR
 			|| pcap_setfilter(cap, &fp) == PCAP_ERROR) {
@@ -95,6 +101,7 @@ static int64_t		thrds_run(thrds_arg_t *args) {
 			return (-1);
 		}
 	}
+	*/
 }
 
 char				*thrds_spawn(void) {

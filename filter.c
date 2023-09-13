@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/09 16:37:22 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/13 13:22:08 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/13 13:28:48 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,7 +46,7 @@ char				*filter_init(filt_t *filt, job_t *job) {
 				stop = 1;
 			if (stop || j + 1 >= OPTS.port_nb || OPTS.ports[j + 1] - OPTS.ports[j] > 1) {
 				if (range)
-					sprintf(buff, "(src portrange %d-%d) or ", start, OPTS.ports[i]);
+					sprintf(buff, "(src portrange %d-%d) or ", start, OPTS.ports[j]);
 				else
 					sprintf(buff, "(src port %d) or ", OPTS.ports[j]);
 				if ((err = filt_add(filt, buff)))
@@ -66,7 +66,7 @@ char				*filter_init(filt_t *filt, job_t *job) {
 }
 
 void			filter_print(filt_t *filt) {
-	printf("%s\n", filt->data);
+	printf("%s", filt->data);
 }
 
 void			filter_destroy(filt_t *filt) {
