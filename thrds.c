@@ -16,7 +16,7 @@ int					SEND_SOCK = 0;
 results_t			RESULTS = { 0 };
 pthread_mutex_t		PRINT = PTHREAD_MUTEX_INITIALIZER;
 
-void		thrds_print_wrapper(thrds_arg_t *args, print_fn_t fn, void *arg) {
+static void			thrds_print_wrapper(thrds_arg_t *args, print_fn_t fn, void *arg) {
 	pthread_mutex_lock(&PRINT);
 	printf("%u > ", args->id);
 	fn(arg);
@@ -24,16 +24,17 @@ void		thrds_print_wrapper(thrds_arg_t *args, print_fn_t fn, void *arg) {
 	pthread_mutex_unlock(&PRINT);
 }
 
-char		*thrds_init(void) {
+char				*thrds_init(void) {
 	int			one = 1;
 
 	if ((SEND_SOCK = socket(AF_INET, SOCK_RAW, ETH_P_ALL)) < 0
 			|| setsockopt(SEND_SOCK, IPPROTO_IP, IP_HDRINCL,
 				&one, sizeof(one)))
 		return (strerror(errno));
+	return (NULL);
 }
 
-char	*thrds_send(thrds_arg_t *args) {
+static char			*thrds_send(thrds_arg_t *args) {
 	uint8_t					data[BUFF_SZ];
 	packet_t				packet;
 	struct sockaddr_in		dst = { .sin_family = AF_INET };
@@ -62,14 +63,14 @@ char	*thrds_send(thrds_arg_t *args) {
 	return (NULL);
 }
 
-void		thrds_recv(thrds_arg_t *args, const struct pcap_pkthdr *pkt_hdr, const uint8_t *pkt) {
+static void			thrds_recv(thrds_arg_t *args, const struct pcap_pkthdr *pkt_hdr, const uint8_t *pkt) {
+	(void)pkt_hdr;
 	thrds_print_wrapper(args, (print_fn_t)packet_print, ((struct ether_header *)pkt) + 1);
 }
 
-int64_t		thrds_run(thrds_arg_t *args) {
+static int64_t		thrds_run(thrds_arg_t *args) {
 	filt_t				filt;
 	pcap_t				*cap;
-	pthread_t			thrd;
 	struct bpf_program	fp;
 
 	if (!(cap = pcap_open_live(LOCAL.dev_name,
@@ -77,6 +78,7 @@ int64_t		thrds_run(thrds_arg_t *args) {
 		return (-1);
 	if ((args->err_ptr = filter_init(&filt, &args->job)))
 		return (-1);
+	thrds_print_wrapper(args, (print_fn_t )filter_print, &filt);
 	if (pcap_compile(cap, &fp, filt.data, 1,
 				PCAP_NETMASK_UNKNOWN) == PCAP_ERROR
 			|| pcap_setfilter(cap, &fp) == PCAP_ERROR) {
@@ -95,10 +97,21 @@ int64_t		thrds_run(thrds_arg_t *args) {
 	}
 }
 
-char		*thrds_spawn(void) {
-	uint64_t		i;
+char				*thrds_spawn(void) {
+	uint64_t		i,
+					tot = OPTS.port_nb * OPTS.ip_nb,
+					div = tot / OPTS.speedup,
+					rem = tot % OPTS.speedup;
+	thrds_arg_t		args[MAX_THRDS] = { 0 };
 
 	for (i = 0; i < OPTS.speedup; ++i) {
-
+		args[i].job.nb = div + (i < rem);
+		args[i].job.idx = i * div + (i < rem ? i : rem);
+		args[i].id = i;
+		printf("%lu: idx: %lu nb: %lu\n", i, args[i].job.idx, args[i].job.nb);
+		if (thrds_run(&args[i]))
+			return (args[i].err_ptr ?
+						args[i].err_ptr : args[i].err_buff);
 	}
+	return (NULL);
 }

@@ -30,28 +30,32 @@ char				*filter_init(filt_t *filt, job_t *job) {
 				max = job->idx + job->nb;
 	uint16_t	start;
 	char		*err, buff[BUFF_SZ];
-	uint8_t		range = 0;
+	uint8_t		range = 0, stop = 0;
 
 	filt->data = NULL;
 	filt->sz = 0;
 	if (!job->nb)
 		return (NULL);
-	for (; (i * OPTS.port_nb + j) < max; ++i, j = 0) {
+	printf("stop: %d\n", stop);
+	for (; stop; ++i, j = 0) {
+	printf("OK\n");
 		if ((err = filt_add(filt, "(src host "))
 				|| (err = filt_add(filt, inet_ntoa(*(struct in_addr *)&OPTS.ips[i])))
 				|| (err = filt_add(filt, " and ")))
 			return (err);
-		for (; j < OPTS.port_nb && (i * OPTS.port_nb + j) < max; ++j) {
-			if (i + 1 >= OPTS.port_nb || OPTS.ports[i + 1] - OPTS.ports[i] > 1) {
+		for (; stop || j < OPTS.port_nb; ++j) {
+			if ((i * OPTS.port_nb + j) >= max)
+				stop = 1;
+			if (stop || j + 1 >= OPTS.port_nb || OPTS.ports[j + 1] - OPTS.ports[j] > 1) {
 				if (range)
 					sprintf(buff, "(src portrange %d-%d) or ", start, OPTS.ports[i]);
 				else
-					sprintf(buff, "(src port %d) or ", OPTS.ports[i]);
+					sprintf(buff, "(src port %d) or ", OPTS.ports[j]);
 				if ((err = filt_add(filt, buff)))
 					return (err);
 				range = 0;
 			} else if (!range) {
-				start = OPTS.ports[i];
+				start = OPTS.ports[j];
 				range = 1;
 			}
 		}

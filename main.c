@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "main.h"
+#include "thrds.h"
 
 int		main(int, char **argv) {
 //	data_t		data = { 0 };
@@ -21,12 +21,20 @@ int		main(int, char **argv) {
 		fprintf(stderr, "Error: %s\n", err);
 		return (1);
 	}
-	parse_print();
+	parse_print(NULL);
 	if ((err = local_init())) {
 		fprintf(stderr, "Error: %s\n", err);
 		return (2);
 	}
-	local_print();
+	local_print(NULL);
+	if ((err = thrds_init())) {
+		fprintf(stderr, "Error: %s\n", err);
+		return (3);
+	}
+	if ((err = thrds_spawn())) {
+		fprintf(stderr, "Error: %s\n", err);
+		return (4);
+	}
 	/*
 	if (init(&data, opts))
 		return (3);

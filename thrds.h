@@ -33,6 +33,9 @@ typedef result_t		results_t[MAX_IPS][MAX_PORTS][SCANS_NB];
 
 typedef void	*(*thrds_handler)(void *);
 
+char	*thrds_init(void);
+char	*thrds_spawn(void);
+
 extern results_t		RESULTS;
 
 #endif // THRDS_H

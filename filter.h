@@ -20,10 +20,10 @@ typedef struct		filt_s {
 	uint64_t		sz;
 }					filt_t;
 
-typedef struct	job_s {
-	uint64_t	idx;
-	uint64_t	nb;
-}				job_t;
+typedef struct		job_s {
+	uint64_t		idx;
+	uint64_t		nb;
+}					job_t;
 
 char			*filter_init(filt_t *filt, job_t *job);
 void			filter_print(filt_t *filt);

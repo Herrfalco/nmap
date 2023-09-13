@@ -2,10 +2,13 @@ NAME	=	ft_nmap
 SRCS	=	main.c \
 		parse.c \
 		filter.c \
-		utils.c
+		utils.c \
+		local.c \
+		thrds.c \
+		packet.c
 OBJS	=	$(SRCS:.c=.o)
 CC	=	gcc
-CFLAGS	=	-Wall -Wextra -Werror -lpcap
+CFLAGS	=	-Wall -Wextra -Werror -lpcap -lpthread
 LIBS = -lpcap
 
 all	:	$(NAME)
