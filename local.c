@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/11 14:55:43 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/11 16:42:24 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/12 15:04:18 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,7 +44,7 @@ char		*local_init(void) {
 	return ("No connected device available");
 }
 
-void		local_print(void) {
+void		local_print(void *) {
 	printf("device: %s, IP: %s\n", LOCAL.dev_name,
 			inet_ntoa(LOCAL.addr.sin_addr));
 }

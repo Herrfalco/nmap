@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/11 14:54:38 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/11 15:38:35 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/12 15:04:26 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,5 +21,8 @@ typedef struct			local_s {
 }						local_t;
 
 extern local_t			LOCAL;
+
+char		*local_init(void);
+void		local_print(void *);
 
 #endif // LOCAL_H

@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/12 14:59:20 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/11 09:46:52 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/12 15:05:33 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,7 +40,7 @@ static uint8_t	OPT_EXCL[] = {
 
 static char		*parse_flag(char *arg, parse_fn_t *parse_fn);
 
-void			parse_print(void) {
+void			parse_print(void *) {
 	struct in_addr	ip = { 0 };
 	uint64_t		i;
 	uint16_t		lst;

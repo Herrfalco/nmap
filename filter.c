@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/09 16:37:22 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/12 14:52:31 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/12 15:20:52 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,7 +26,8 @@ static char			*filt_add(filt_t *filt, char *data) {
 
 char				*filter_init(filt_t *filt, job_t *job) {
 	uint64_t	i = job->idx / OPTS.port_nb,
-				j = job->idx % OPTS.port_nb;
+				j = job->idx % OPTS.port_nb,
+				max = job->idx + job->nb;
 	uint16_t	start;
 	char		*err, buff[BUFF_SZ];
 	uint8_t		range = 0;
@@ -35,12 +36,12 @@ char				*filter_init(filt_t *filt, job_t *job) {
 	filt->sz = 0;
 	if (!job->nb)
 		return (NULL);
-	for (; (i * OPTS.port_nb + j) < job->idx + job->nb; ++i, j = 0) {
+	for (; (i * OPTS.port_nb + j) < max; ++i, j = 0) {
 		if ((err = filt_add(filt, "(src host "))
 				|| (err = filt_add(filt, inet_ntoa(*(struct in_addr *)&OPTS.ips[i])))
 				|| (err = filt_add(filt, " and ")))
 			return (err);
-		for (; j < OPTS.port_nb && (i * OPTS.port_nb + j) < job->idx + job->nb; ++j) {
+		for (; j < OPTS.port_nb && (i * OPTS.port_nb + j) < max; ++j) {
 			if (i + 1 >= OPTS.port_nb || OPTS.ports[i + 1] - OPTS.ports[i] > 1) {
 				if (range)
 					sprintf(buff, "(src portrange %d-%d) or ", start, OPTS.ports[i]);
@@ -60,6 +61,10 @@ char				*filter_init(filt_t *filt, job_t *job) {
 	filt->sz -= 4;
 	filt->data[filt->sz] = '\0';
 	return (filt_add(filt, ")"));
+}
+
+void			filter_print(filt_t *filt) {
+	printf("%s\n", filt->data);
 }
 
 void			filter_destroy(filt_t *filt) {

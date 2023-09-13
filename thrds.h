@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/11 20:28:46 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/12 09:30:28 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/12 15:36:18 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,7 +24,9 @@ typedef enum	result_e {
 
 typedef struct	thrds_arg_s {
 	job_t		job;
-	char		err[BUFF_SZ];
+	char		err_buff[BUFF_SZ];
+	char		*err_ptr;
+	uint8_t		id;
 }				thrds_arg_t;
 
 typedef result_t		results_t[MAX_IPS][MAX_PORTS][SCANS_NB];
