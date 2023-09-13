@@ -36,7 +36,7 @@ char				*filter_init(filt_t *filt, job_t *job) {
 	filt->sz = 0;
 	if (!job->nb)
 		return (NULL);
-	for (; !stop; ++i, j = 0) {
+	for (;i < OPTS.ip_nb && !stop; ++i, j = 0) {
 		if ((err = filt_add(filt, "(src host "))
 				|| (err = filt_add(filt, inet_ntoa(*(struct in_addr *)&OPTS.ips[i])))
 				|| (err = filt_add(filt, " and (")))

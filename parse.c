@@ -17,7 +17,7 @@ static char		*FLAG_NAMES[] = {
 };
 
 static char		*SCAN_NAMES[] = {
-	"SYN", "NULL", "ACK", "FIN", "XMAX", "UDP",
+	"SYN", "NULL", "ACK", "FIN", "XMAS", "UDP",
 };
 
 opts_t			OPTS = { 
@@ -265,7 +265,7 @@ static char		*disp_help(char *err) {
 							"          --file       file containing a list of IP address (upto 512)\n"
 							"          --speedup    number of aditionnal threads (upto 250))\n"
 							"          --scan       scan types combined with a '+'\n"
-							"                       (SYN, NULL, ACK, FIN, XMAX, UDP)\n";
+							"                       (SYN, NULL, ACK, FIN, XMAS, UDP)\n";
 
 	snprintf(buff, BUFF_SZ * 2, "%s\n\n%s",
 			err ? err : title, help);

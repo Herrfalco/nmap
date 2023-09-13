@@ -35,6 +35,7 @@ int		main(int, char **argv) {
 		fprintf(stderr, "Error: %s\n", err);
 		return (4);
 	}
+	while (42);
 	/*
 	if (init(&data, opts))
 		return (3);

@@ -15,6 +15,7 @@
 int					SEND_SOCK = 0;
 results_t			RESULTS = { 0 };
 pthread_mutex_t		PRINT = PTHREAD_MUTEX_INITIALIZER;
+thrds_arg_t			THRDS[MAX_THRDS] = { 0 };
 
 static void			thrds_print_wrapper(thrds_arg_t *args, print_fn_t fn, void *arg) {
 	pthread_mutex_lock(&PRINT);
@@ -34,7 +35,6 @@ char				*thrds_init(void) {
 	return (NULL);
 }
 
-/*
 static char			*thrds_send(thrds_arg_t *args) {
 	uint8_t					data[BUFF_SZ];
 	packet_t				packet;
@@ -48,7 +48,7 @@ static char			*thrds_send(thrds_arg_t *args) {
 	for (; (i * OPTS.port_nb + j) < max; ++i, j = 0) {
 		for (; j < OPTS.port_nb && (i * OPTS.port_nb + j) < max; ++j) {
 			dst.sin_addr.s_addr = OPTS.ips[i];
-			dst.sin_port = OPTS.ports[j];
+			dst.sin_port = htons(OPTS.ports[j]);
 			for (scan = ST_SYN; scan < ST_MAX; scan <<= 1) {
 				if (OPTS.scan & scan) {
 					packet_fill(&packet, &dst, scan);
@@ -68,7 +68,6 @@ static void			thrds_recv(thrds_arg_t *args, const struct pcap_pkthdr *pkt_hdr, c
 	(void)pkt_hdr;
 	thrds_print_wrapper(args, (print_fn_t)packet_print, ((struct ether_header *)pkt) + 1);
 }
-*/
 
 static int64_t		thrds_run(thrds_arg_t *args) {
 	filt_t				filt;
@@ -80,17 +79,14 @@ static int64_t		thrds_run(thrds_arg_t *args) {
 		return (-1);
 	if ((args->err_ptr = filter_init(&filt, &args->job)))
 		return (-1);
-	thrds_print_wrapper(args, (print_fn_t )filter_print, &filt);
-
-	(void)fp;
-	return (0);
-	/*
+//	thrds_print_wrapper(args, (print_fn_t )filter_print, &filt);
 	if (pcap_compile(cap, &fp, filt.data, 1,
 				PCAP_NETMASK_UNKNOWN) == PCAP_ERROR
 			|| pcap_setfilter(cap, &fp) == PCAP_ERROR) {
 		args->err_ptr = pcap_geterr(cap);
 		return (-1);
 	}
+	
 	if ((args->err_ptr = thrds_send(args)))
 		return (-1);
 	//LOOP NEEDED ?
@@ -101,7 +97,7 @@ static int64_t		thrds_run(thrds_arg_t *args) {
 			return (-1);
 		}
 	}
-	*/
+	return (0);
 }
 
 char				*thrds_spawn(void) {
@@ -109,16 +105,16 @@ char				*thrds_spawn(void) {
 					tot = OPTS.port_nb * OPTS.ip_nb,
 					div = tot / OPTS.speedup,
 					rem = tot % OPTS.speedup;
-	thrds_arg_t		args[MAX_THRDS] = { 0 };
 
-	for (i = 0; i < OPTS.speedup; ++i) {
-		args[i].job.nb = div + (i < rem);
-		args[i].job.idx = i * div + (i < rem ? i : rem);
-		args[i].id = i;
-		printf("%lu: idx: %lu nb: %lu\n", i, args[i].job.idx, args[i].job.nb);
-		if (thrds_run(&args[i]))
-			return (args[i].err_ptr ?
-						args[i].err_ptr : args[i].err_buff);
+	for (i = 1; i < OPTS.speedup; ++i) {
+		THRDS[i].job.nb = div + (i < rem);
+		THRDS[i].job.idx = i * div + (i < rem ? i : rem);
+		THRDS[i].id = i;
+		printf("%lu: idx: %lu nb: %lu\n", i, THRDS[i].job.idx, THRDS[i].job.nb);
+		if (pthread_create(&THRDS[i].thrd, NULL,
+				(void *)thrds_run, &THRDS[i]))
+			return (THRDS[i].err_ptr ?
+					THRDS[i].err_ptr : THRDS[i].err_buff);
 	}
 	return (NULL);
 }

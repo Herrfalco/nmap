@@ -27,6 +27,7 @@ typedef struct	thrds_arg_s {
 	char		err_buff[BUFF_SZ];
 	char		*err_ptr;
 	uint8_t		id;
+	pthread_t	thrd;
 }				thrds_arg_t;
 
 typedef result_t		results_t[MAX_IPS][MAX_PORTS][SCANS_NB];
