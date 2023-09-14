@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/12 15:00:11 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/14 15:32:39 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/14 19:17:47 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,4 +35,16 @@ uint8_t			bit_set(uint8_t byte) {
 		+ ((byte >> 5) & 0x1)
 		+ ((byte >> 6) & 0x1)
 		+ ((byte >> 7) & 0x1));
+}
+
+uint8_t			idx_2_scan(uint8_t scans, uint8_t min, uint8_t max, uint8_t idx) {
+	uint8_t		s;
+
+	for (s = min; s < max; s <<= 1) {
+		if (scans & s) {
+			if (!idx)
+				return (s);
+			--idx;
+		}
+	}
 }
