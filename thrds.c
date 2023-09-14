@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/11 20:26:04 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/14 18:04:30 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/14 20:00:04 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,28 +39,23 @@ static char			*thrds_send(thrds_arg_t *args) {
 	uint8_t					data[BUFF_SZ] = { 0 };
 	packet_t				packet;
 	struct sockaddr_in		dst = { .sin_family = AF_INET };
-	scan_t					scan;
-	uint64_t				i = args->job.idx / OPTS.port_nb,
-							j = args->job.idx % OPTS.port_nb,
-							max = args->job.idx + args->job.nb;
+	uint64_t				scan_nb = bit_set(OPTS.scan),
+							s, p, a, i, max;
 
 	packet_init(&packet, data, 0);
-	for (; (i * OPTS.port_nb + j) < max; ++i, j = 0) {
-		for (; j < OPTS.port_nb && (i * OPTS.port_nb + j) < max; ++j) {
-			dst.sin_addr.s_addr = OPTS.ips[i];
-			dst.sin_port = htons(OPTS.ports[j]);
-			for (scan = ST_SYN; scan < ST_MAX; scan <<= 1) {
-				if (OPTS.scan & scan) {
-					bzero(data, BUFF_SZ);
-					packet_fill(&packet, &dst, scan);
-					thrds_print_wrapper(args, (print_fn_t)packet_print, &packet);
-					if (sendto(SEND_SOCK, data, packet.sz, 0,
-								(struct sockaddr *)&dst,
-								sizeof(struct sockaddr_in)) < 0)
-						return (strerror(errno));
-				}
-			}
-		}
+	for (i = args->job.idx, max = i + args->job.nb; i < max; ++i) {
+		s = i % scan_nb;
+		p = i / scan_nb % OPTS.port_nb;
+		a = i / scan_nb / OPTS.port_nb;
+		bzero(data, BUFF_SZ);
+		dst.sin_addr.s_addr = OPTS.ips[a];
+		dst.sin_port = htons(OPTS.ports[p]);
+		packet_fill(&packet, &dst, idx_2_scan(OPTS.scan, ST_SYN, ST_MAX, s));
+		thrds_print_wrapper(args, (print_fn_t)packet_print, &packet);
+		if (sendto(SEND_SOCK, data, packet.sz, 0,
+					(struct sockaddr *)&dst,
+					sizeof(struct sockaddr_in)) < 0)
+			return (strerror(errno));
 	}
 	return (NULL);
 }
