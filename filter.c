@@ -24,7 +24,6 @@ static char			*filt_add(filt_t *filt, char *data) {
 	return (NULL);
 }
 
-/*
 char				*filter_init(filt_t *filt, job_t *job) {
 	uint64_t	scan_nb = bit_set(OPTS.scan),
 				s = job->idx % scan_nb,
@@ -34,12 +33,18 @@ char				*filter_init(filt_t *filt, job_t *job) {
 	uint8_t		stop = 0;
 	char		*err, buff[BUFF_SZ];
 
+	if (!job->nb)
+		return (NULL);
 	for (; !stop && i < OPTS.ip_nb; ++i, p = 0) {
 		if ((err = filt_add(filt, "(src host "))
 				|| (err = filt_add(filt, inet_ntoa(*(struct in_addr *)&OPTS.ips[i])))
 				|| (err = filt_add(filt, " and (")))
 			return (err);
 		for (; !stop && p < OPTS.port_nb; ++p, s = 0) {
+			if (i * OPTS.port_nb + p * scan_nb + s >= max) {
+				stop = 1;
+				break;
+			}
 			sprintf(buff, "%u", OPTS.ports[p]);
 			if ((err = filt_add(filt, "(src port "))
 					|| (err = filt_add(filt, buff))
@@ -50,25 +55,26 @@ char				*filter_init(filt_t *filt, job_t *job) {
 					stop = 1;
 					break;
 				}
-				sprintf(buff, "%lu", SRC_PORT + s);
+				sprintf(buff, "%u", SRC_PORT
+						+ idx_2_scan(OPTS.scan, ST_SYN, ST_MAX, s));
 				if ((err = filt_add(filt, "dst port "))
 						|| (err = filt_add(filt, buff))
 						|| (err = filt_add(filt, " or ")))
 					return (err);
 			}
 			filt->sz -= 4;
-			if ((err = filt_add(filt, ")) or")))
+			if ((err = filt_add(filt, ")) or ")))
 				return (err);
 		}
 		filt->sz -= 4;
-		if ((err = filt_add(filt, ")) or")))
+		if ((err = filt_add(filt, ")) or ")))
 			return (err);
 	}
 	filt->sz -= 4;
+	filt->data[filt->sz] = '\0';
 	return (NULL);
 }
-*/
-
+/*
 char				*filter_init(filt_t *filt, job_t *job) {
 	uint64_t	i = job->idx / OPTS.port_nb,
 				j = job->idx % OPTS.port_nb,
@@ -109,7 +115,7 @@ char				*filter_init(filt_t *filt, job_t *job) {
 	filt->data[filt->sz] = '\0';
 	return (NULL);
 }
-
+*/
 void			filter_print(filt_t *filt) {
 	printf("%s", filt->data);
 }

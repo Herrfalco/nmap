@@ -47,4 +47,5 @@ uint8_t			idx_2_scan(uint8_t scans, uint8_t min, uint8_t max, uint8_t idx) {
 			--idx;
 		}
 	}
+	return (0);
 }

@@ -53,7 +53,7 @@ static char			*thrds_send(thrds_arg_t *args) {
 				if (OPTS.scan & scan) {
 					bzero(data, BUFF_SZ);
 					packet_fill(&packet, &dst, scan);
-//					thrds_print_wrapper(args, (print_fn_t)packet_print, &packet);
+					thrds_print_wrapper(args, (print_fn_t)packet_print, &packet);
 					if (sendto(SEND_SOCK, data, packet.sz, 0,
 								(struct sockaddr *)&dst,
 								sizeof(struct sockaddr_in)) < 0)
@@ -124,11 +124,10 @@ static int64_t		thrds_run(thrds_arg_t *args) {
 			args->err_ptr = pcap_geterr(cap);
 			return (-1);
 		}
-	}
-	printf("OK\n");
+	} 
 	return (0);
 }
-
+/*
 char				*thrds_spawn(void) {
 	uint64_t		i,
 					tot = OPTS.port_nb * OPTS.ip_nb,
@@ -147,8 +146,7 @@ char				*thrds_spawn(void) {
 	}
 	return (NULL);
 }
-
-/*
+*/
 char				*thrds_spawn(void) {
 	uint64_t		scan_nb = bit_set(OPTS.scan), i,
 					tot = OPTS.port_nb * OPTS.ip_nb * scan_nb,
@@ -156,7 +154,8 @@ char				*thrds_spawn(void) {
 					rem = tot % OPTS.speedup;
 
 	for (i = 0; i < OPTS.speedup; ++i) {
-		THRDS[i].job.nb = div + (i < rem);
+		if (!(THRDS[i].job.nb = div + (i < rem)))
+			break ;
 		THRDS[i].job.idx = i * div + (i < rem ? i : rem);
 		THRDS[i].id = i;
 		printf("%lu: idx: %lu nb: %lu\n", i, THRDS[i].job.idx, THRDS[i].job.nb);
@@ -167,4 +166,3 @@ char				*thrds_spawn(void) {
 	}
 	return (NULL);
 }
-*/
