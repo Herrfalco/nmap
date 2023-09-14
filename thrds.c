@@ -36,7 +36,7 @@ char				*thrds_init(void) {
 }
 
 static char			*thrds_send(thrds_arg_t *args) {
-	uint8_t					data[BUFF_SZ];
+	uint8_t					data[BUFF_SZ] = { 0 };
 	packet_t				packet;
 	struct sockaddr_in		dst = { .sin_family = AF_INET };
 	scan_t					scan;
@@ -65,8 +65,11 @@ static char			*thrds_send(thrds_arg_t *args) {
 }
 
 static void			thrds_recv(thrds_arg_t *args, const struct pcap_pkthdr *pkt_hdr, const uint8_t *pkt) {
-	(void)pkt_hdr;
-	thrds_print_wrapper(args, (print_fn_t)packet_print, ((struct ether_header *)pkt) + 1);
+	packet_t	packet;
+
+	//SECURISER LE BAIL
+	packet_init(&packet, (void *)((struct ether_header *)pkt + 1), pkt_hdr->len - sizeof(struct ether_header));
+	thrds_print_wrapper(args, (print_fn_t)packet_print, &packet);
 }
 
 static int64_t		thrds_run(thrds_arg_t *args) {
@@ -106,7 +109,7 @@ char				*thrds_spawn(void) {
 					div = tot / OPTS.speedup,
 					rem = tot % OPTS.speedup;
 
-	for (i = 1; i < OPTS.speedup; ++i) {
+	for (i = 0; i < OPTS.speedup; ++i) {
 		THRDS[i].job.nb = div + (i < rem);
 		THRDS[i].job.idx = i * div + (i < rem ? i : rem);
 		THRDS[i].id = i;

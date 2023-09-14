@@ -32,7 +32,7 @@ char		*local_init(void) {
                 if (addr->addr && addr->addr->sa_family == AF_INET) {
 					strncpy(LOCAL.dev_name, dev->name, BUFF_SZ);
 					LOCAL.addr.sin_family = AF_INET;
-					LOCAL.addr.sin_port = htons(SRC_PORT);
+					LOCAL.addr.sin_port = SRC_PORT;
 					LOCAL.addr.sin_addr = ((struct sockaddr_in *)addr->addr)->sin_addr;
 					pcap_freealldevs(all_devs);
 					return (NULL);
