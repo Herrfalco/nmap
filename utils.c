@@ -12,6 +12,10 @@
 
 #include "includes.h"
 
+void			print_error(char *str) {
+	fprintf(stderr, "%s\n", str);
+}
+
 int				str_n_cmp(char *s1, char *s2, uint64_t n) {
 	for (; n && *s1 && *s1 == *s2; --n, ++s1, ++s2);
 	return (n ? *s1 - *s2 : 0);

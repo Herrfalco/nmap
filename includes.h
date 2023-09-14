@@ -44,5 +44,11 @@
 #define				MAX_WIN				0xff
 #define				PCAP_SNAPLEN_MAX	0xffff
 #define				PCAP_TIME_OUT		-1
+#define				ETHH_SZ				14
+#define				IPH_SZ				20
+#define				TCPH_SZ				20
+#define				ICMPH_SZ			8
+#define				UDPH_SZ				8
+#define				HDR_PORTS_SZ		4
 
 #endif // INCLUDES_H

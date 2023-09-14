@@ -87,7 +87,7 @@ char				*filter_init(filt_t *filt, job_t *job) {
 				|| (err = filt_add(filt, " and (")))
 			return (err);
 		for (; !stop && j < OPTS.port_nb; ++j) {
-			if ((i * OPTS.port_nb + j) >= max)
+			if ((i * OPTS.port_nb + j) >= max - 1)
 				stop = 1;
 			if (stop || j + 1 >= OPTS.port_nb || OPTS.ports[j + 1] - OPTS.ports[j] > 1) {
 				if (range)

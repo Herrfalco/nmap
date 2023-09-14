@@ -27,7 +27,7 @@ static void		packet_fill_tcp(packet_t *packet, struct sockaddr_in *dst, scan_t s
 	packet->ipp->dst = dst->sin_addr.s_addr;
 	packet->ipp->prot = IPPROTO_TCP;
 	packet->ipp->tcp_seg_sz = htons(sizeof(struct tcphdr));
-    packet->tcph->source = LOCAL.addr.sin_port;
+    packet->tcph->source = htons(LOCAL.addr.sin_port + scan);
     packet->tcph->dest = dst->sin_port;
     packet->tcph->doff = sizeof(struct tcphdr) / 4;
 	packet->tcph->fin = !!(scan & (ST_FIN | ST_XMAS));

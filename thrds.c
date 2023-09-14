@@ -51,6 +51,7 @@ static char			*thrds_send(thrds_arg_t *args) {
 			dst.sin_port = htons(OPTS.ports[j]);
 			for (scan = ST_SYN; scan < ST_MAX; scan <<= 1) {
 				if (OPTS.scan & scan) {
+					bzero(data, BUFF_SZ);
 					packet_fill(&packet, &dst, scan);
 //					thrds_print_wrapper(args, (print_fn_t)packet_print, &packet);
 					if (sendto(SEND_SOCK, data, packet.sz, 0,
@@ -65,11 +66,35 @@ static char			*thrds_send(thrds_arg_t *args) {
 }
 
 static void			thrds_recv(thrds_arg_t *args, const struct pcap_pkthdr *pkt_hdr, const uint8_t *pkt) {
-	packet_t	packet;
+	packet_t			packet;
+	struct ether_header	*ethh = (struct ether_header *)pkt;
 
-	//SECURISER LE BAIL
-	packet_init(&packet, (void *)((struct ether_header *)pkt + 1), pkt_hdr->len - sizeof(struct ether_header));
-	thrds_print_wrapper(args, (print_fn_t)packet_print, &packet);
+	if (ntohs(ethh->ether_type) == ETHERTYPE_IP
+			&& pkt_hdr->len == pkt_hdr->caplen
+			&& pkt_hdr->len >= ETHH_SZ + IPH_SZ) {
+		packet_init(&packet, (void *)((struct ether_header *)pkt + 1),
+						pkt_hdr->len - sizeof(struct ether_header));
+		switch(packet.iph->protocol) {
+			case (IPPROTO_TCP):
+				if (pkt_hdr->len < ETHH_SZ + IPH_SZ + TCPH_SZ)
+					return ;
+				break ;
+			case (IPPROTO_UDP):
+				if (pkt_hdr->len < ETHH_SZ + IPH_SZ + UDPH_SZ)
+					return ;
+				break ;
+			case (IPPROTO_ICMP):
+				if (pkt_hdr->len < ETHH_SZ + IPH_SZ
+									+ ICMPH_SZ + HDR_PORTS_SZ)
+					return ;
+				break ;
+			default:
+				break ;
+		}
+		thrds_print_wrapper(args, (print_fn_t)packet_print, &packet);
+	} else
+		thrds_print_wrapper(args, (print_fn_t)print_error,
+			"Recv Error: No IP type packet or Trunked packet");
 }
 
 static int64_t		thrds_run(thrds_arg_t *args) {
@@ -100,6 +125,7 @@ static int64_t		thrds_run(thrds_arg_t *args) {
 			return (-1);
 		}
 	}
+	printf("OK\n");
 	return (0);
 }
 
