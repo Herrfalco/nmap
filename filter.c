@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/09 16:37:22 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/13 13:28:48 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/14 17:59:41 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,6 +23,51 @@ static char			*filt_add(filt_t *filt, char *data) {
 	filt->sz += len;
 	return (NULL);
 }
+
+/*
+char				*filter_init(filt_t *filt, job_t *job) {
+	uint64_t	scan_nb = bit_set(OPTS.scan),
+				s = job->idx % scan_nb,
+				p = job->idx / scan_nb % OPTS.port_nb,
+				i = job->idx / scan_nb / OPTS.port_nb,
+				max = job->idx + job->nb;
+	uint8_t		stop = 0;
+	char		*err, buff[BUFF_SZ];
+
+	for (; !stop && i < OPTS.ip_nb; ++i, p = 0) {
+		if ((err = filt_add(filt, "(src host "))
+				|| (err = filt_add(filt, inet_ntoa(*(struct in_addr *)&OPTS.ips[i])))
+				|| (err = filt_add(filt, " and (")))
+			return (err);
+		for (; !stop && p < OPTS.port_nb; ++p, s = 0) {
+			sprintf(buff, "%u", OPTS.ports[p]);
+			if ((err = filt_add(filt, "(src port "))
+					|| (err = filt_add(filt, buff))
+					|| (err = filt_add(filt, " and (")))
+				return (err);
+			for (; s < scan_nb; ++s) {
+				if (i * OPTS.port_nb + p * scan_nb + s >= max) {
+					stop = 1;
+					break;
+				}
+				sprintf(buff, "%lu", SRC_PORT + s);
+				if ((err = filt_add(filt, "dst port "))
+						|| (err = filt_add(filt, buff))
+						|| (err = filt_add(filt, " or ")))
+					return (err);
+			}
+			filt->sz -= 4;
+			if ((err = filt_add(filt, ")) or")))
+				return (err);
+		}
+		filt->sz -= 4;
+		if ((err = filt_add(filt, ")) or")))
+			return (err);
+	}
+	filt->sz -= 4;
+	return (NULL);
+}
+*/
 
 char				*filter_init(filt_t *filt, job_t *job) {
 	uint64_t	i = job->idx / OPTS.port_nb,
