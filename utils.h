@@ -17,6 +17,7 @@
 
 typedef void	(*print_fn_t)(void *);
 
+void			print_error(char *str);
 int				str_n_cmp(char *s1, char *s2, uint64_t n);
 int				str_cmp(char *s1, char *s2);
 
