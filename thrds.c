@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/11 20:26:04 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/13 13:28:09 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/14 18:04:30 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -147,3 +147,24 @@ char				*thrds_spawn(void) {
 	}
 	return (NULL);
 }
+
+/*
+char				*thrds_spawn(void) {
+	uint64_t		scan_nb = bit_set(OPTS.scan), i,
+					tot = OPTS.port_nb * OPTS.ip_nb * scan_nb,
+					div = tot / OPTS.speedup,
+					rem = tot % OPTS.speedup;
+
+	for (i = 0; i < OPTS.speedup; ++i) {
+		THRDS[i].job.nb = div + (i < rem);
+		THRDS[i].job.idx = i * div + (i < rem ? i : rem);
+		THRDS[i].id = i;
+		printf("%lu: idx: %lu nb: %lu\n", i, THRDS[i].job.idx, THRDS[i].job.nb);
+		if (pthread_create(&THRDS[i].thrd, NULL,
+				(void *)thrds_run, &THRDS[i]))
+			return (THRDS[i].err_ptr ?
+					THRDS[i].err_ptr : THRDS[i].err_buff);
+	}
+	return (NULL);
+}
+*/
