@@ -96,6 +96,7 @@ static int64_t		thrds_run(thrds_arg_t *args) {
 	filt_t				filt;
 	pcap_t				*cap;
 	struct bpf_program	fp;
+	struct timeval		tv_start, tv_cur;
 
 	if (!(cap = pcap_open_live(LOCAL.dev_name,
 		PCAP_SNAPLEN_MAX, 0, PCAP_TIME_OUT, args->err_buff)))
@@ -112,13 +113,16 @@ static int64_t		thrds_run(thrds_arg_t *args) {
 	
 	if ((args->err_ptr = thrds_send(args)))
 		return (-1);
-	//LOOP NEEDED ?
-	for (;;) {
+	if (gettimeofday(&tv_start, NULL))
+		return (-1);
+	for (tv_cur = tv_start; !is_elapsed(&tv_start, &tv_cur, TIME_OUT);) {
 		if (pcap_dispatch(cap, 0, (pcap_handler)thrds_recv, (void *)args)
 				== PCAP_ERROR) {
 			args->err_ptr = pcap_geterr(cap);
 			return (-1);
 		}
+		if (gettimeofday(&tv_cur, NULL))
+			return (-1);
 	} 
 	return (0);
 }

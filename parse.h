@@ -33,6 +33,7 @@ typedef enum		scan_e {
 	ST_UDP = 0x20,
 	ST_MAX = 0x30,
 	ST_ALL = 0x3f,
+	ST_ICMP = 0x40,
 }					scan_t;
 
 typedef struct		opts_s {

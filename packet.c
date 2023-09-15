@@ -41,6 +41,10 @@ static void		packet_fill_tcp(packet_t *packet, struct sockaddr_in *dst, scan_t s
 	bzero(packet->iph, sizeof(struct iphdr));
 }
 
+static void		packet_fill_icmp(void) {
+
+}
+
 static void		packet_fill_udp(void) {
 	// NON IMPLEMENTE
 }
@@ -68,6 +72,11 @@ void			packet_fill(packet_t *packet, struct sockaddr_in *dst, scan_t scan) {
 			packet_fill_udp();
 			packet_fill_ip(packet, dst->sin_addr.s_addr, IPPROTO_UDP);
 			packet->sz = sizeof(struct iphdr) + sizeof(struct udphdr);
+			break;
+		case ST_ICMP:
+			packet_fill_icmp();
+			packet_fill_ip(packet, dst->sin_addr.s_addr, IPPROTO_ICMP);
+			packet->sz = sizeof(struct iphdr) + sizeof(struct icmphdr);
 			break;
 		default:
 			packet_fill_tcp(packet, dst, scan);

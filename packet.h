@@ -23,12 +23,6 @@ typedef struct			ip_pseudo_s {
 	uint16_t			tcp_seg_sz;
 }						ip_pseudo_t;
 
-typedef enum			packet_typ_e {
-	PT_TCP,
-	PT_UDP,
-	PT_ICMP,
-}						packet_typ_t;
-
 typedef struct			packet_s {
 	struct iphdr		*iph;
 	union				{

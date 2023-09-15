@@ -30,6 +30,7 @@
 #include <pthread.h>
 #include <pcap/pcap.h>
 #include <net/ethernet.h>
+#include <sys/time.h>
 
 #define				BUFF_SZ				0x1000
 #define				MAX_PORTS			0x400
@@ -50,5 +51,6 @@
 #define				ICMPH_SZ			8
 #define				UDPH_SZ				8
 #define				HDR_PORTS_SZ		4
+#define				TIME_OUT			500
 
 #endif // INCLUDES_H

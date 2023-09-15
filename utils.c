@@ -49,3 +49,8 @@ uint8_t			idx_2_scan(uint8_t scans, uint8_t min, uint8_t max, uint8_t idx) {
 	}
 	return (0);
 }
+
+uint8_t			is_elapsed(struct timeval *tv_start, struct timeval *tv_cur, time_t delta) {
+	return (((tv_cur->tv_sec - tv_start->tv_sec) * 1000
+		+ (tv_cur->tv_usec - tv_start->tv_usec) / 1000) >= delta);
+}

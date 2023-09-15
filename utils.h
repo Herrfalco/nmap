@@ -22,5 +22,7 @@ int				str_n_cmp(char *s1, char *s2, uint64_t n);
 int				str_cmp(char *s1, char *s2);
 uint8_t			bit_set(uint8_t byte);
 uint8_t			idx_2_scan(uint8_t scans, uint8_t min, uint8_t max, uint8_t idx);
+uint8_t			is_elapsed(struct timeval *tv_start,
+					struct timeval *tv_cur, time_t delta);
 
 #endif // UTILS_H
