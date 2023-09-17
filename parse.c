@@ -6,14 +6,14 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/12 14:59:20 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/12 15:05:33 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/18 00:27:42 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "parse.h"
 
 static char		*FLAG_NAMES[] = {
-	"help", "ports", "ip", "file", "speedup", "scan",
+	"help", "ports", "ip", "file", "speedup", "scan", "timeout",
 };
 
 static char		*SCAN_NAMES[] = {
@@ -66,12 +66,12 @@ void			parse_print(void *) {
 		ip.s_addr = OPTS.ips[i];
 		printf("%s%s\n", i ? "     " : "", inet_ntoa(ip));
 	}
-	printf("%sspeedup: %d\n", i ? "" : "\n", OPTS.speedup);
+	printf("%sspeedup: %ld\n", i ? "" : "\n", OPTS.speedup);
 	printf("scan: ");
 	for (i = 0; i < FLAGS_NB; ++i)
 		if (OPTS.scan & (1 << i))
 			printf("%s ", SCAN_NAMES[i]);
-	printf("\b \n");
+	printf("\b \ntimeout: %ld\n", OPTS.timeout);
 }
 
 static char		*save_port(uint32_t start, uint32_t end, uint8_t num, uint8_t range) {
@@ -163,8 +163,22 @@ static char		*parse_speedup(char *arg) {
 	for (; *arg >= '0' && *arg <= '9'; ++arg) {
 		OPTS.speedup *= 10;
 		OPTS.speedup += *arg - '0';
+		if (OPTS.speedup >= MAX_THRDS)
+			return ("Speedup is too big");
 	}
 	return (*arg ? "Invalid speedup" : NULL);
+}
+
+static char		*parse_timeout(char *arg) {
+	if (!arg)
+		return ("Timeout not specified");
+	for (; *arg >= '0' && *arg <= '9'; ++arg) {
+		OPTS.timeout *= 10;
+		OPTS.timeout += *arg - '0';
+		if (OPTS.timeout >= MAX_TIMEOUT)
+			return ("Timeout is too big");
+	}
+	return (*arg ? "Invalid timeout" : NULL);
 }
 
 static char		*parse_scan_name(char *arg) {
@@ -210,6 +224,7 @@ static char		*parse_flag(char *arg, parse_fn_t *parse_fn) {
 		parse_file,
 		parse_speedup,
 		parse_scan,
+		parse_timeout,
 	};
 	flag_t		flag;
 	uint8_t		i;
@@ -245,12 +260,8 @@ static char		*parse_args(char **argv) {
 		else
 			parse_fn = NULL;
 	}
-	return (parse_fn ? parse_fn(NULL) : NULL);
-}
-
-static char		*parse_check(void) {
-	if (OPTS.speedup > MAX_THRDS)
-		return ("Invalid speedup value (max 250)");
+	if ((error = parse_fn ? parse_fn(NULL) : NULL))
+		return (error);
 	return (OPTS.ip_nb || OPTS.flag & F_HELP ? NULL : "No IP specified");
 }
 
@@ -260,12 +271,13 @@ static char		*disp_help(char *err) {
 					*help = "Usage:    ft_nmap [--ip IP] or [--file FILE] or [--help]\n\n"
 							"Options:  --help       display help informations\n"
 							"          --ports      ascending ports or range of ports (max 1024)\n"
-							"						(e.g. 1,10-12,17,19,20-30)\n"
+							"                       (e.g. 1,10-12,17,19,20-30)\n"
 							"          --ip         target IP address (IPV4)\n"
 							"          --file       file containing a list of IP address (upto 512)\n"
 							"          --speedup    number of aditionnal threads (upto 250))\n"
 							"          --scan       scan types combined with a '+'\n"
-							"                       (SYN, NULL, ACK, FIN, XMAS, UDP)\n";
+							"                       (SYN, NULL, ACK, FIN, XMAS, UDP)\n"
+							"          --timeout    time to wait for a response\n";
 
 	snprintf(buff, BUFF_SZ * 2, "%s\n\n%s",
 			err ? err : title, help);
@@ -280,13 +292,15 @@ static void		init_ports(void) {
 char			*parse(char **argv) {
 	char		*error;
 
-	if ((error = parse_args(++argv))
-			|| (error = parse_check())) {
+	if ((error = parse_args(++argv)))
 		return (disp_help(error));
-	} else if (OPTS.flag & F_HELP) {
+	else if (OPTS.flag & F_HELP) {
 		printf("%s\n", disp_help(NULL));
 		return (NULL);
-	} else if (!(OPTS.flag & F_PORTS))
+	}
+	if (!(OPTS.flag & F_PORTS))
 		init_ports();
+	if (!OPTS.timeout)
+		OPTS.timeout = DEF_TIMEOUT;
 	return (NULL);
 }

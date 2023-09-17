@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/12 15:00:44 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/12 15:01:45 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/18 00:17:57 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,7 +40,7 @@
 #define				SRC_PORT			55555
 #define				FILE_SZ				((INET_ADDRSTRLEN + 1) * MAX_IPS)
 #define				MAX_THRDS			250
-#define				FLAGS_NB			6
+#define				FLAGS_NB			7
 #define				SCANS_NB			6
 #define				MAX_WIN				0xff
 #define				PCAP_SNAPLEN_MAX	0xffff
@@ -51,6 +51,7 @@
 #define				ICMPH_SZ			8
 #define				UDPH_SZ				8
 #define				HDR_PORTS_SZ		4
-#define				TIME_OUT			500
+#define				DEF_TIMEOUT			500
+#define				MAX_TIMEOUT			60000
 
 #endif // INCLUDES_H

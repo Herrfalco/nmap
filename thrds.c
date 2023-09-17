@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/11 20:26:04 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/14 20:00:04 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/18 00:29:42 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,7 +21,6 @@ static void			thrds_print_wrapper(thrds_arg_t *args, print_fn_t fn, void *arg) {
 	pthread_mutex_lock(&PRINT);
 	printf("%u > ", args->id);
 	fn(arg);
-	printf("\n");
 	pthread_mutex_unlock(&PRINT);
 }
 
@@ -115,7 +114,7 @@ static int64_t		thrds_run(thrds_arg_t *args) {
 		return (-1);
 	if (gettimeofday(&tv_start, NULL))
 		return (-1);
-	for (tv_cur = tv_start; !is_elapsed(&tv_start, &tv_cur, TIME_OUT);) {
+	for (tv_cur = tv_start; !is_elapsed(&tv_start, &tv_cur, OPTS.timeout);) {
 		if (pcap_dispatch(cap, 0, (pcap_handler)thrds_recv, (void *)args)
 				== PCAP_ERROR) {
 			args->err_ptr = pcap_geterr(cap);
