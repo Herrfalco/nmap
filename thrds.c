@@ -43,6 +43,7 @@ static char			*thrds_send(thrds_arg_t *args) {
 
 	packet_init(&packet, data, 0);
 	for (i = args->job.idx, max = i + args->job.nb; i < max; ++i) {
+		usleep(200);
 		s = i % scan_nb;
 		p = i / scan_nb % OPTS.port_nb;
 		a = i / scan_nb / OPTS.port_nb;
@@ -50,7 +51,7 @@ static char			*thrds_send(thrds_arg_t *args) {
 		dst.sin_addr.s_addr = OPTS.ips[a];
 		dst.sin_port = htons(OPTS.ports[p]);
 		packet_fill(&packet, &dst, idx_2_scan(OPTS.scan, ST_SYN, ST_MAX, s));
-		thrds_print_wrapper(args, (print_fn_t)packet_print, &packet);
+//		thrds_print_wrapper(args, (print_fn_t)packet_print, &packet);
 		if (sendto(SEND_SOCK, data, packet.sz, 0,
 					(struct sockaddr *)&dst,
 					sizeof(struct sockaddr_in)) < 0)
@@ -102,7 +103,7 @@ static int64_t		thrds_run(thrds_arg_t *args) {
 		return (-1);
 	if ((args->err_ptr = filter_init(&filt, &args->job)))
 		return (-1);
-//	thrds_print_wrapper(args, (print_fn_t )filter_print, &filt);
+	thrds_print_wrapper(args, (print_fn_t )filter_print, &filt);
 	if (pcap_compile(cap, &fp, filt.data, 1,
 				PCAP_NETMASK_UNKNOWN) == PCAP_ERROR
 			|| pcap_setfilter(cap, &fp) == PCAP_ERROR) {

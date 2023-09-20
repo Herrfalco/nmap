@@ -37,6 +37,7 @@ typedef void	*(*thrds_handler)(void *);
 char	*thrds_init(void);
 char	*thrds_spawn(void);
 
+extern thrds_arg_t		THRDS[MAX_THRDS];
 extern results_t		RESULTS;
 
 #endif // THRDS_H

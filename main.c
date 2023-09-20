@@ -13,8 +13,7 @@
 #include "thrds.h"
 
 int		main(int, char **argv) {
-//	data_t		data = { 0 };
-//	uint64_t	i, j;
+	uint64_t	i;
 	char		*err;
 
 	if ((err = parse(argv))) {
@@ -35,6 +34,7 @@ int		main(int, char **argv) {
 		fprintf(stderr, "Error: %s\n", err);
 		return (4);
 	}
-	while (42);
+	for (i = 0; i < OPTS.speedup; ++i)
+		pthread_join(THRDS[i].thrd, NULL);
 	return (0);
 }
