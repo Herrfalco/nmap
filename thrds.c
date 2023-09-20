@@ -13,9 +13,10 @@
 #include "thrds.h"
 
 int					SEND_SOCK = 0;
-results_t			RESULTS = { 0 };
 pthread_mutex_t		PRINT = PTHREAD_MUTEX_INITIALIZER;
 thrds_arg_t			THRDS[MAX_THRDS] = { 0 };
+
+static void			thrds_recv(thrds_arg_t *args, const struct pcap_pkthdr *pkt_hdr, const uint8_t *pkt);
 
 static void			thrds_print_wrapper(thrds_arg_t *args, print_fn_t fn, void *arg) {
 	pthread_mutex_lock(&PRINT);
@@ -34,7 +35,24 @@ char				*thrds_init(void) {
 	return (NULL);
 }
 
-static char			*thrds_send(thrds_arg_t *args) {
+static int			recv_loop(uint64_t ms, pcap_t *cap, thrds_arg_t *args) {
+	struct timeval	tv_start, tv_cur;
+
+	if (gettimeofday(&tv_start, NULL))
+		return (-1);
+	for (tv_cur = tv_start; !is_elapsed(&tv_start, &tv_cur, ms);) {
+		if (pcap_dispatch(cap, 0, (pcap_handler)thrds_recv, (void *)args)
+				== PCAP_ERROR) {
+			args->err_ptr = pcap_geterr(cap);
+			return (-1);
+		}
+		if (gettimeofday(&tv_cur, NULL))
+			return (-1);
+	} 
+	return (0);
+}
+
+static char			*thrds_send(thrds_arg_t *args, pcap_t *cap) {
 	uint8_t					data[BUFF_SZ] = { 0 };
 	packet_t				packet;
 	struct sockaddr_in		dst = { .sin_family = AF_INET };
@@ -43,7 +61,8 @@ static char			*thrds_send(thrds_arg_t *args) {
 
 	packet_init(&packet, data, 0);
 	for (i = args->job.idx, max = i + args->job.nb; i < max; ++i) {
-		usleep(200);
+		if (recv_loop(100, cap, args))
+			return ("Can't get time");
 		s = i % scan_nb;
 		p = i / scan_nb % OPTS.port_nb;
 		a = i / scan_nb / OPTS.port_nb;
@@ -63,6 +82,7 @@ static char			*thrds_send(thrds_arg_t *args) {
 static void			thrds_recv(thrds_arg_t *args, const struct pcap_pkthdr *pkt_hdr, const uint8_t *pkt) {
 	packet_t			packet;
 	struct ether_header	*ethh = (struct ether_header *)pkt;
+	result_t			*result;
 
 	if (ntohs(ethh->ether_type) == ETHERTYPE_IP
 			&& pkt_hdr->len == pkt_hdr->caplen
@@ -73,6 +93,33 @@ static void			thrds_recv(thrds_arg_t *args, const struct pcap_pkthdr *pkt_hdr, c
 			case (IPPROTO_TCP):
 				if (pkt_hdr->len < ETHH_SZ + IPH_SZ + TCPH_SZ)
 					return ;
+				if (!(result = result_ptr(packet.iph->saddr,
+						packet.tcph->source,
+						packet.tcph->dest)))
+					return ;
+				switch (ntohs(packet.tcph->dest) - LOCAL.addr.sin_port) {
+					case ST_SYN:
+						if (packet.tcph->ack)
+							*result = R_OPEN;
+						else if (packet.tcph->rst)
+							*result = R_CLOSE;
+						break;
+					case ST_NULL:
+						__attribute__((fallthrough));
+					case ST_FIN:
+						__attribute__((fallthrough));
+					case ST_XMAS:
+						if (packet.tcph->rst)
+							*result = R_CLOSE;
+						break;
+
+					case ST_ACK:
+						if (packet.tcph->rst)
+							*result = R_UNFILTERED;
+						break;
+					default:
+						break;
+				}
 				break ;
 			case (IPPROTO_UDP):
 				if (pkt_hdr->len < ETHH_SZ + IPH_SZ + UDPH_SZ)
@@ -96,14 +143,14 @@ static int64_t		thrds_run(thrds_arg_t *args) {
 	filt_t				filt;
 	pcap_t				*cap;
 	struct bpf_program	fp;
-	struct timeval		tv_start, tv_cur;
+//	struct timeval		tv_start, tv_cur;
 
 	if (!(cap = pcap_open_live(LOCAL.dev_name,
 		PCAP_SNAPLEN_MAX, 0, PCAP_TIME_OUT, args->err_buff)))
 		return (-1);
 	if ((args->err_ptr = filter_init(&filt, &args->job)))
 		return (-1);
-	thrds_print_wrapper(args, (print_fn_t )filter_print, &filt);
+//	thrds_print_wrapper(args, (print_fn_t )filter_print, &filt);
 	if (pcap_compile(cap, &fp, filt.data, 1,
 				PCAP_NETMASK_UNKNOWN) == PCAP_ERROR
 			|| pcap_setfilter(cap, &fp) == PCAP_ERROR) {
@@ -111,20 +158,9 @@ static int64_t		thrds_run(thrds_arg_t *args) {
 		return (-1);
 	}
 	
-	if ((args->err_ptr = thrds_send(args)))
+	if ((args->err_ptr = thrds_send(args, cap)))
 		return (-1);
-	if (gettimeofday(&tv_start, NULL))
-		return (-1);
-	for (tv_cur = tv_start; !is_elapsed(&tv_start, &tv_cur, OPTS.timeout);) {
-		if (pcap_dispatch(cap, 0, (pcap_handler)thrds_recv, (void *)args)
-				== PCAP_ERROR) {
-			args->err_ptr = pcap_geterr(cap);
-			return (-1);
-		}
-		if (gettimeofday(&tv_cur, NULL))
-			return (-1);
-	} 
-	return (0);
+	return (recv_loop(OPTS.timeout, cap, args));
 }
 /*
 char				*thrds_spawn(void) {

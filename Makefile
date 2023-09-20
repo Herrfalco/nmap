@@ -5,7 +5,8 @@ SRCS	=	main.c \
 		utils.c \
 		local.c \
 		thrds.c \
-		packet.c
+		packet.c \
+		result.c
 OBJS	=	$(SRCS:.c=.o)
 CC	=	gcc
 CFLAGS	=	-Wall -Wextra -Werror -lpcap -lpthread

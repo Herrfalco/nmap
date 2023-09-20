@@ -13,14 +13,7 @@
 #ifndef THRDS_H
 #define THRDS_H
 
-#include "filter.h"
-
-typedef enum	result_e {
-	R_NONE,
-	R_OPEN,
-	R_CLOSE,
-	R_FILTERED,
-}				result_t;
+#include "result.h"
 
 typedef struct	thrds_arg_s {
 	job_t		job;
@@ -30,14 +23,11 @@ typedef struct	thrds_arg_s {
 	pthread_t	thrd;
 }				thrds_arg_t;
 
-typedef result_t		results_t[MAX_IPS][MAX_PORTS][SCANS_NB];
-
 typedef void	*(*thrds_handler)(void *);
 
 char	*thrds_init(void);
 char	*thrds_spawn(void);
 
-extern thrds_arg_t		THRDS[MAX_THRDS];
-extern results_t		RESULTS;
+extern	thrds_arg_t	THRDS[MAX_THRDS];
 
 #endif // THRDS_H

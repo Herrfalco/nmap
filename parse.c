@@ -163,7 +163,7 @@ static char		*parse_speedup(char *arg) {
 	for (; *arg >= '0' && *arg <= '9'; ++arg) {
 		OPTS.speedup *= 10;
 		OPTS.speedup += *arg - '0';
-		if (OPTS.speedup >= MAX_THRDS)
+		if (OPTS.speedup > MAX_THRDS)
 			return ("Speedup is too big");
 	}
 	return (*arg ? "Invalid speedup" : NULL);
