@@ -36,7 +36,7 @@
 #define				MAX_PORTS			0x400
 #define				MIN_PORT_VAL		0xc000
 #define				MAX_PORT_VAL		0xffff
-#define				MAX_IPS				0x100
+#define				MAX_IPS				0x10
 #define				SRC_PORT			55555
 #define				FILE_SZ				((INET_ADDRSTRLEN + 1) * MAX_IPS)
 #define				MAX_THRDS			250

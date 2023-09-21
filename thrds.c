@@ -95,10 +95,10 @@ static void			thrds_recv(thrds_arg_t *args, const struct pcap_pkthdr *pkt_hdr, c
 					return ;
 				switch (ntohs(packet.tcph->dest) - LOCAL.addr.sin_port) {
 					case ST_SYN:
-						if (packet.tcph->ack)
-							result_set(&packet, R_OPEN);
-						else if (packet.tcph->rst)
+						if (packet.tcph->rst)
 							result_set(&packet, R_CLOSE);
+						else if (packet.tcph->ack)
+							result_set(&packet, R_OPEN);
 						break;
 					case ST_NULL:
 						__attribute__((fallthrough));
@@ -153,7 +153,7 @@ static void			thrds_recv(thrds_arg_t *args, const struct pcap_pkthdr *pkt_hdr, c
 }
 
 static int64_t		thrds_run(thrds_arg_t *args) {
-	filt_t				filt;
+	filt_t				filt = { 0 };
 	pcap_t				*cap;
 	struct bpf_program	fp;
 //	struct timeval		tv_start, tv_cur;
@@ -163,17 +163,20 @@ static int64_t		thrds_run(thrds_arg_t *args) {
 		return (-1);
 	if ((args->err_ptr = filter_init(&filt, &args->job)))
 		return (-1);
-//	thrds_print_wrapper(args, (print_fn_t )filter_print, &filt);
+	thrds_print_wrapper(args, (print_fn_t )filter_print, &filt);
 	if (pcap_compile(cap, &fp, filt.data, 1,
 				PCAP_NETMASK_UNKNOWN) == PCAP_ERROR
 			|| pcap_setfilter(cap, &fp) == PCAP_ERROR) {
 		args->err_ptr = pcap_geterr(cap);
 		return (-1);
 	}
-	
+	filter_destroy(&filt);
 	if ((args->err_ptr = thrds_send(args, cap)))
 		return (-1);
-	return (recv_loop(OPTS.timeout, cap, args));
+	if (recv_loop(OPTS.timeout, cap, args))
+		return (-1);
+	pcap_close(cap);
+	return (0);
 }
 
 char				*thrds_spawn(void) {
