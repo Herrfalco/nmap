@@ -13,8 +13,14 @@ typedef enum	result_e {
 	R_OPEN_FILTERED,
 }				result_t;
 
+typedef struct	genh_s {
+	uint16_t	source;
+	uint16_t	dest;
+}				genh_t;
+
 typedef result_t	results_t[MAX_IPS][MAX_PORTS][SCANS_NB];
 
-result_t	*result_ptr(in_addr_t ip, uint16_t targ_port, uint16_t local_port);
+void	result_set(packet_t *pkt, result_t res);
+void	result_print(void);
 
 #endif

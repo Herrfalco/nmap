@@ -54,5 +54,6 @@ char				*parse(char **argv);
 void				parse_print(void *);
 
 extern opts_t		OPTS;
+extern char			*SCAN_NAMES[];
 
 #endif // PARSE_H

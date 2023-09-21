@@ -16,7 +16,7 @@ static char		*FLAG_NAMES[] = {
 	"help", "ports", "ip", "file", "speedup", "scan", "timeout",
 };
 
-static char		*SCAN_NAMES[] = {
+char		*SCAN_NAMES[] = {
 	"SYN", "NULL", "ACK", "FIN", "XMAS", "UDP",
 };
 

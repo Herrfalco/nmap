@@ -82,27 +82,23 @@ static char			*thrds_send(thrds_arg_t *args, pcap_t *cap) {
 static void			thrds_recv(thrds_arg_t *args, const struct pcap_pkthdr *pkt_hdr, const uint8_t *pkt) {
 	packet_t			packet;
 	struct ether_header	*ethh = (struct ether_header *)pkt;
-	result_t			*result;
+	genh_t				*genh;
+	scan_t				scan;
 
 	if (ntohs(ethh->ether_type) == ETHERTYPE_IP
 			&& pkt_hdr->len == pkt_hdr->caplen
 			&& pkt_hdr->len >= ETHH_SZ + IPH_SZ) {
-		packet_init(&packet, (void *)((struct ether_header *)pkt + 1),
-						pkt_hdr->len - sizeof(struct ether_header));
+		packet_init(&packet, (void *)((struct ether_header *)pkt + 1), pkt_hdr->len - sizeof(struct ether_header));
 		switch(packet.iph->protocol) {
-			case (IPPROTO_TCP):
+			case IPPROTO_TCP:
 				if (pkt_hdr->len < ETHH_SZ + IPH_SZ + TCPH_SZ)
-					return ;
-				if (!(result = result_ptr(packet.iph->saddr,
-						packet.tcph->source,
-						packet.tcph->dest)))
 					return ;
 				switch (ntohs(packet.tcph->dest) - LOCAL.addr.sin_port) {
 					case ST_SYN:
 						if (packet.tcph->ack)
-							*result = R_OPEN;
+							result_set(&packet, R_OPEN);
 						else if (packet.tcph->rst)
-							*result = R_CLOSE;
+							result_set(&packet, R_CLOSE);
 						break;
 					case ST_NULL:
 						__attribute__((fallthrough));
@@ -110,30 +106,47 @@ static void			thrds_recv(thrds_arg_t *args, const struct pcap_pkthdr *pkt_hdr, c
 						__attribute__((fallthrough));
 					case ST_XMAS:
 						if (packet.tcph->rst)
-							*result = R_CLOSE;
+							result_set(&packet, R_CLOSE);
 						break;
-
 					case ST_ACK:
 						if (packet.tcph->rst)
-							*result = R_UNFILTERED;
+							result_set(&packet, R_UNFILTERED);
 						break;
 					default:
 						break;
 				}
 				break ;
-			case (IPPROTO_UDP):
+			case IPPROTO_UDP:
 				if (pkt_hdr->len < ETHH_SZ + IPH_SZ + UDPH_SZ)
 					return ;
+				if ((ntohs(packet.udph->dest) - LOCAL.addr.sin_port) == ST_UDP)
+					result_set(&packet, R_OPEN);
 				break ;
-			case (IPPROTO_ICMP):
+			case IPPROTO_ICMP:
 				if (pkt_hdr->len < ETHH_SZ + IPH_SZ
-									+ ICMPH_SZ + HDR_PORTS_SZ)
+						+ ICMPH_SZ + HDR_PORTS_SZ
+						|| packet.icmph->type != 3
+						|| !((packet.icmph->code >= 1
+								&& packet.icmph->code <= 3)
+							|| packet.icmph->code == 9
+							|| packet.icmph->code == 10
+							|| packet.icmph->code == 13))
 					return ;
-				break ;
+				genh = (genh_t *)(packet.icmph + 1);
+				scan = ntohs(genh->dest) - LOCAL.addr.sin_port;
+				if (scan == ST_UDP) {
+					if (packet.icmph->code == 3)
+						result_set(&packet, R_CLOSE);
+					else
+						result_set(&packet, R_FILTERED);
+				} else if (scan == ST_ACK)
+					result_set(&packet, R_OPEN_CLOSE);
+				else
+					result_set(&packet, R_FILTERED);
 			default:
 				break ;
 		}
-		thrds_print_wrapper(args, (print_fn_t)packet_print, &packet);
+//		thrds_print_wrapper(args, (print_fn_t)packet_print, &packet);
 	} else
 		thrds_print_wrapper(args, (print_fn_t)print_error,
 			"Recv Error: No IP type packet or Trunked packet");
@@ -162,26 +175,7 @@ static int64_t		thrds_run(thrds_arg_t *args) {
 		return (-1);
 	return (recv_loop(OPTS.timeout, cap, args));
 }
-/*
-char				*thrds_spawn(void) {
-	uint64_t		i,
-					tot = OPTS.port_nb * OPTS.ip_nb,
-					div = tot / OPTS.speedup,
-					rem = tot % OPTS.speedup;
 
-	for (i = 0; i < OPTS.speedup; ++i) {
-		THRDS[i].job.nb = div + (i < rem);
-		THRDS[i].job.idx = i * div + (i < rem ? i : rem);
-		THRDS[i].id = i;
-		printf("%lu: idx: %lu nb: %lu\n", i, THRDS[i].job.idx, THRDS[i].job.nb);
-		if (pthread_create(&THRDS[i].thrd, NULL,
-				(void *)thrds_run, &THRDS[i]))
-			return (THRDS[i].err_ptr ?
-					THRDS[i].err_ptr : THRDS[i].err_buff);
-	}
-	return (NULL);
-}
-*/
 char				*thrds_spawn(void) {
 	uint64_t		scan_nb = bit_set(OPTS.scan), i,
 					tot = OPTS.port_nb * OPTS.ip_nb * scan_nb,
@@ -193,7 +187,6 @@ char				*thrds_spawn(void) {
 			break ;
 		THRDS[i].job.idx = i * div + (i < rem ? i : rem);
 		THRDS[i].id = i;
-		printf("%lu: idx: %lu nb: %lu\n", i, THRDS[i].job.idx, THRDS[i].job.nb);
 		if (pthread_create(&THRDS[i].thrd, NULL,
 				(void *)thrds_run, &THRDS[i]))
 			return (THRDS[i].err_ptr ?

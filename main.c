@@ -36,5 +36,7 @@ int		main(int, char **argv) {
 	}
 	for (i = 0; i < OPTS.speedup; ++i)
 		pthread_join(THRDS[i].thrd, NULL);
+	printf("Scan time: A FAIRE\n");
+	result_print();
 	return (0);
 }

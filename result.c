@@ -39,12 +39,35 @@ static int64_t		scan_idx(uint16_t raw_port) {
 	}
 }
 
-result_t	*result_ptr(in_addr_t ip, uint16_t targ_port, uint16_t local_port) {
-	int64_t	ip_i, port_i, scan_i;
+void				result_set(packet_t *pkt, result_t res) {
+	int64_t		ip_i, port_i, scan_i;
+	in_addr_t	ip;
+	genh_t		*genh;
 
+	ip = pkt->iph->saddr;
+	genh = pkt->iph->protocol == IPPROTO_ICMP
+		? (genh_t *)(pkt->icmph + 1)
+		: (genh_t *)(pkt->iph + 1);
 	if ((ip_i = ip_idx(ip)) < 0
-			|| (port_i = port_idx(targ_port)) < 0
-			|| (scan_i = scan_idx(local_port)) < 0)
-		return (NULL);
-	return (&RESULTS[ip_i][port_i][scan_i]);
+			|| (port_i = port_idx(genh->source)) < 0
+			|| (scan_i = scan_idx(genh->dest)) < 0)
+		return ;
+	if (!RESULTS[ip_i][port_i][scan_i])
+		RESULTS[ip_i][port_i][scan_i] = res;
+}
+
+void				result_print(void) {
+	uint64_t	ip_i, port_i, scan_i, scan_nb = bit_set(OPTS.scan);
+
+	for (ip_i = 0; ip_i < OPTS.ip_nb; ++ip_i) {
+		printf("IP address: %s\n", inet_ntoa(*(struct in_addr *)&OPTS.ips[ip_i]));
+		for (port_i = OPTS.port_nb; port_i; --port_i) {
+			for (scan_i = 0; scan_i < scan_nb; ++scan_i) {
+				if (RESULTS[ip_i][port_i][scan_i] == R_OPEN)
+					printf("%s %d: Open\n",
+						SCAN_NAMES[scan_i],
+						OPTS.ports[port_i]);
+			}
+		}
+	}
 }
