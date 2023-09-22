@@ -56,30 +56,113 @@ void				result_set(packet_t *pkt, result_t res) {
 		RESULTS[ip_i][port_i][scan_i] = res;
 }
 
-void				result_print(void) {
+static void			serv_name(uint16_t port, char *s_buff) {
 	struct servent	*servent;
+
+	if ((servent = getservbyport(htons(port), NULL)))
+		sprintf(s_buff, "%s/%s", servent->s_name, servent->s_proto);
+	else
+		sprintf(s_buff, "Unassigned");
+}
+
+static int			results_str(uint64_t scan_i, result_t res, char *r_buff) {
+	char	eol[50] = { 0 }, cat_buf[BUFF_SZ] = { 0 };
+
+	strcat(r_buff, SCAN_NAMES[scan_i]);
+	if (scan_i + 1 < OPTS.scan_nb)
+		sprintf(eol, "%-41s", "\n");
+	else
+		sprintf(eol, "%s", "");
+	switch (res) {
+		case R_NONE:
+			switch(OPTS.scans[scan_i]) {
+				case ST_SYN:
+					sprintf(cat_buf, "(Filtered)%s", eol);
+					break;
+				case ST_ACK:
+					sprintf(cat_buf, "(Open|Close)%s", eol);
+					break;
+				default:
+					sprintf(cat_buf, "(Open|Filtered)%s", eol);
+					break;
+			}
+			break;
+		case R_OPEN:
+			sprintf(cat_buf, "(Open)%s", eol);
+			break;
+		case R_CLOSE:
+			sprintf(cat_buf, "(Closed)%s", eol);
+			break;
+		case R_FILTERED:
+			sprintf(cat_buf, "(Filtered)%s", eol);
+			break;
+		case R_UNFILTERED:
+			sprintf(cat_buf, "(Unfiltered)%s", eol);
+			break;
+		case R_OPEN_CLOSE:
+			sprintf(cat_buf, "(Open|Close)%s", eol);
+			break;
+		case R_OPEN_FILTERED:
+			sprintf(cat_buf, "(Open|Filtered)%s", eol);
+			break;
+	}
+	strcat(r_buff, cat_buf);
+	return (0);
+}
+
+void				result_print(void) {
 	uint64_t		ip_i, scan_i;
 	int64_t			port_i;
+	char			s_buff[BUFF_SZ] = { 0 }, r_buff[BUFF_SZ] = { 0 };
+	uint8_t			is_open;
 
-	for (ip_i = 0; ip_i < (int64_t)OPTS.ip_nb; ++ip_i) {
-		printf("IP address: %s\n", inet_ntoa(*(struct in_addr *)&OPTS.ips[ip_i]));
+	for (ip_i = 0; ip_i < OPTS.ip_nb; ++ip_i) {
+		printf("\n++++++++++++++++++++++++++++"
+				"++++++++++++++++++++++++++++\n");
+		printf("\nIP address: %s\n", inet_ntoa(*(struct in_addr *)&OPTS.ips[ip_i]));
 		printf("Open ports:\n");
-		printf("%-20s%-20s%-20s%-30s\n", "Port", "Service Name",
-			"Results", "Conclusion");
-		printf("-----------------------------------------"\
-				"----------------------------------------\n");
+		printf("%-10s%-20s%s\n", "Port", "Service Name", "Results");
+		printf("---------------------------"
+				"--------------------------\n");
 		for (port_i = OPTS.port_nb - 1; port_i >= 0; --port_i) {
-			servent = getservbyport(OPTS.ports[port_i], NULL);
-			if (servent)
-				printf("test: %d: %s\n", OPTS.ports[port_i], servent->s_name);
+			bzero(r_buff, BUFF_SZ);
+			is_open = 0;
 			for (scan_i = 0; scan_i < OPTS.scan_nb; ++scan_i) {
+				results_str(scan_i, RESULTS[ip_i][port_i][scan_i], r_buff);	
 				if (RESULTS[ip_i][port_i][scan_i] == R_OPEN)
-					printf("%-20d%-20s%-20s%-30s\n",
-						OPTS.ports[port_i],
-						!servent ? "Unassigned" : servent->s_name,
-						"SCAN_NAME(Open)",
-						"Open");;
+					is_open = 1;
+			}
+			if (is_open) {
+				bzero(s_buff, BUFF_SZ);
+				serv_name(OPTS.ports[port_i], s_buff);
+				printf("%-10d%-20s%s\n",
+					OPTS.ports[port_i],
+					s_buff,
+					r_buff);
 			}
 		}
+		printf("\nClosed/Filtered/Unfiltered ports\n");
+		printf("%-10s%-20s%s\n", "Port", "Service Name", "Results");
+		printf("---------------------------"
+				"--------------------------\n");
+		bzero(s_buff, BUFF_SZ);
+		for (port_i = OPTS.port_nb - 1; port_i >= 0; --port_i) {
+			bzero(r_buff, BUFF_SZ);
+			is_open = 0;
+			for (scan_i = 0; scan_i < OPTS.scan_nb; ++scan_i) {
+				results_str(scan_i, RESULTS[ip_i][port_i][scan_i], r_buff);	
+				if (RESULTS[ip_i][port_i][scan_i] == R_OPEN)
+					is_open = 1;
+			}
+			if (!is_open) {
+				bzero(s_buff, BUFF_SZ);
+				serv_name(OPTS.ports[port_i], s_buff);
+				printf("%-10d%-20s%s\n",
+					OPTS.ports[port_i],
+					s_buff,
+					r_buff);
+			}
+		}
+
 	}
 }

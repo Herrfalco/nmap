@@ -54,7 +54,7 @@ char				*filter_init(filt_t *filt, job_t *job) {
 					stop = 1;
 					break;
 				}
-				sprintf(buff, "%u", scan_2_port(OPTS.scans[i]));
+				sprintf(buff, "%u", scan_2_port(OPTS.scans[s]));
 				if ((err = filt_add(filt, "dst port "))
 						|| (err = filt_add(filt, buff))
 						|| (err = filt_add(filt, " or ")))
