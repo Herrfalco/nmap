@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/07 15:57:25 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/18 00:29:36 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/22 09:50:26 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,6 +37,6 @@ int		main(int, char **argv) {
 	for (i = 0; i < OPTS.speedup; ++i)
 		pthread_join(THRDS[i].thrd, NULL);
 	printf("Scan time: A FAIRE\n");
-	result_print();
+//	result_print();
 	return (0);
 }

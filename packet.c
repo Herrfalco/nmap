@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/11 14:41:31 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/22 09:13:53 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/22 17:12:25 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -66,7 +66,7 @@ void			packet_init(packet_t *packet, uint8_t *data, uint64_t sz) {
 }
 
 void			packet_fill(packet_t *packet, struct sockaddr_in *dst, scan_t scan) {
-	bzero(packet->iph, sizeof(packet_t));
+	bzero(packet->iph, packet->sz);
 	if (scan == ST_UDP) {
 		packet_fill_udp(packet, dst, scan);
 		packet_fill_ip(packet, dst->sin_addr.s_addr, IPPROTO_UDP);

@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/09 16:37:22 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/22 09:25:28 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/22 18:03:09 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,47 +25,47 @@ static char			*filt_add(filt_t *filt, char *data) {
 }
 
 char				*filter_init(filt_t *filt, job_t *job) {
-	uint64_t	s = job->idx % OPTS.scan_nb,
-				p = job->idx / OPTS.scan_nb % OPTS.port_nb,
-				i = job->idx / OPTS.scan_nb / OPTS.port_nb,
+	uint64_t	p = job->idx % OPTS.port_nb,
+				i = job->idx / OPTS.port_nb,
 				max = job->idx + job->nb;
-	uint8_t		stop = 0;
+	uint16_t	start;
+	uint8_t		stop = 0, range = 0;
 	char		*err, buff[BUFF_SZ];
 
-	if (!job->nb)
-		return (NULL);
+	switch (job->nb) {
+		case 0:
+			return (NULL);
+		case 1:
+			sprintf(buff, "dst port %u and ", SRC_PORT);
+			break;
+		default:
+			sprintf(buff, "dst portrange %u-%lu and ",
+					SRC_PORT, SRC_PORT + OPTS.scan_nb - 1);
+	}
+	if ((err = filt_add(filt, buff)))
+		return (err);
 	for (; !stop && i < OPTS.ip_nb; ++i, p = 0) {
-		if ((err = filt_add(filt, "(src host "))
-				|| (err = filt_add(filt, inet_ntoa(*(struct in_addr *)&OPTS.ips[i])))
-				|| (err = filt_add(filt, " and (")))
+		sprintf(buff, "(src host %s and (", inet_ntoa(*(struct in_addr *)&OPTS.ips[i]) );
+		if ((err = filt_add(filt, buff)))
 			return (err);
-		for (; !stop && p < OPTS.port_nb; ++p, s = 0) {
-			if (i * OPTS.port_nb + p * OPTS.scan_nb + s >= max) {
+
+		for (; !stop && p < OPTS.port_nb; ++p) {
+			if ((i * OPTS.port_nb + p + 1) >= max)
 				stop = 1;
-				break;
-			}
-			sprintf(buff, "%u", OPTS.ports[p]);
-			if ((err = filt_add(filt, "(src port "))
-					|| (err = filt_add(filt, buff))
-					|| (err = filt_add(filt, " and (")))
-				return (err);
-			for (; s < OPTS.scan_nb; ++s) {
-				if (i * OPTS.port_nb + p * OPTS.scan_nb + s >= max) {
-					stop = 1;
-					break;
-				}
-				sprintf(buff, "%u", scan_2_port(OPTS.scans[i]));
-				if ((err = filt_add(filt, "dst port "))
-						|| (err = filt_add(filt, buff))
-						|| (err = filt_add(filt, " or ")))
+			if (stop || p + 1 >= OPTS.port_nb || OPTS.ports[p + 1] - OPTS.ports[p] > 1) {
+				if (range)
+					sprintf(buff, "src portrange %d-%d or ", start, OPTS.ports[p]);
+				else
+					sprintf(buff, "src port %d or ", OPTS.ports[p]);
+				if ((err = filt_add(filt, buff)))
 					return (err);
+				range = 0;
+			} else if (!range) {
+				start = OPTS.ports[p];
+				range = 1;
 			}
-			filt->sz -= 4;
-			if ((err = filt_add(filt, ")) or ")))
-				return (err);
 		}
-		filt->sz -= 4;
-		if ((err = filt_add(filt, ")) or ")))
+		if ((err = filt_add(filt, "icmp)) or ")))
 			return (err);
 	}
 	filt->sz -= 4;
@@ -74,7 +74,8 @@ char				*filter_init(filt_t *filt, job_t *job) {
 }
 
 void			filter_print(filt_t *filt) {
-	printf("%s", filt->data);
+	if (filt->data)
+		printf("%s\n", filt->data);
 }
 
 void			filter_destroy(filt_t *filt) {

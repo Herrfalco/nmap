@@ -61,7 +61,7 @@ void				result_print(void) {
 	uint64_t		ip_i, scan_i;
 	int64_t			port_i;
 
-	for (ip_i = 0; ip_i < (int64_t)OPTS.ip_nb; ++ip_i) {
+	for (ip_i = 0; ip_i < OPTS.ip_nb; ++ip_i) {
 		printf("IP address: %s\n", inet_ntoa(*(struct in_addr *)&OPTS.ips[ip_i]));
 		printf("Open ports:\n");
 		printf("%-20s%-20s%-20s%-30s\n", "Port", "Service Name",
