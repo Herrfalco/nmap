@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/07 15:57:25 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/22 18:07:13 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/22 19:15:10 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,7 @@ int		main(int, char **argv) {
 	uint64_t		i;
 	char			*err;
 	struct timeval	start, end;
+	uint64_t		ms;
 
 	if ((err = parse(argv))) {
 		fprintf(stderr, "Error: %s\n", err);
@@ -41,8 +42,8 @@ int		main(int, char **argv) {
 		pthread_join(THRDS[i].thrd, NULL);
 	if (gettimeofday(&end, NULL))
 		return (4);
-	printf("Scan time: %ld.%ld\n", end.tv_sec - start.tv_sec,
-	((end.tv_sec * 1000 + end.tv_usec) - (start.tv_usec * 1000 + start.tv_usec)) % 1000);
+	ms = (end.tv_sec - start.tv_sec) * 1000 + (end.tv_usec - start.tv_usec) / 1000;
+	printf("Scan time: %ld.%ld\n", ms / 1000, ms % 1000);
 	result_print();
 	return (0);
 }

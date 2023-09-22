@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/11 20:26:04 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/22 18:03:32 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/22 19:18:01 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -60,8 +60,6 @@ static char			*thrds_send(thrds_arg_t *args, pcap_t *cap) {
 
 	packet_init(&packet, data, BUFF_SZ);
 	for (i = args->job.idx, max = i + args->job.nb; i < max; ++i) {
-		if (recv_loop(100, cap, args))
-			return ("Can't get time");
 		p = i % OPTS.port_nb;
 		a = i / OPTS.port_nb;
 		dst.sin_addr.s_addr = OPTS.ips[a];
@@ -73,6 +71,8 @@ static char			*thrds_send(thrds_arg_t *args, pcap_t *cap) {
 						(struct sockaddr *)&dst,
 						sizeof(struct sockaddr_in)) < 0)
 				return (strerror(errno));
+			if (recv_loop(OPTS.tempo, cap, args))
+				return ("Can't get time");
 		}
 	}
 	return (NULL);
@@ -161,7 +161,7 @@ static int64_t		thrds_run(thrds_arg_t *args) {
 		return (-1);
 	if ((args->err_ptr = filter_init(&filt, &args->job)))
 		return (-1);
-	thrds_print_wrapper(args, (print_fn_t)filter_print, &filt);
+//	thrds_print_wrapper(args, (print_fn_t)filter_print, &filt);
 	if (pcap_compile(cap, &fp, filt.data, 1,
 				PCAP_NETMASK_UNKNOWN) == PCAP_ERROR
 			|| pcap_setfilter(cap, &fp) == PCAP_ERROR) {

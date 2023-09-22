@@ -163,6 +163,5 @@ void				result_print(void) {
 					r_buff);
 			}
 		}
-
 	}
 }

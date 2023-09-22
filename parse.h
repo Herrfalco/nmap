@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/12 15:01:52 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/22 09:15:10 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/22 18:52:56 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,7 +22,8 @@ typedef enum		flag_e {
 	F_FILE = 0x8,
 	F_SPEEDUP = 0x10,
 	F_SCAN = 0x20,
-	F_TIMEOUT = 0x30,
+	F_TIMEOUT = 0x40,
+	F_TEMPO = 0x80,
 }					flag_t;
 
 typedef enum		scan_e {
@@ -43,6 +44,7 @@ typedef struct		opts_s {
 	scan_t			scans[SCANS_NB];
 	uint64_t		scan_nb;
 	uint64_t		timeout;
+	uint64_t		tempo;
 	uint64_t		speedup;
 	uint8_t			flag;
 }					opts_t;

@@ -6,14 +6,14 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/12 14:59:20 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/22 09:15:06 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/22 18:52:11 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "parse.h"
 
 static char		*FLAG_NAMES[] = {
-	"help", "ports", "ip", "file", "speedup", "scan", "timeout",
+	"help", "ports", "ip", "file", "speedup", "scan", "timeout", "tempo",
 };
 
 char		*SCAN_NAMES[] = {
@@ -29,6 +29,8 @@ static uint8_t	OPT_EXCL[] = {
 	F_HELP | F_IP,									// F_FILE
 	F_HELP,											// F_SPEEDUP
 	F_HELP,											// F_SCAN
+	F_HELP,											// F_TIMEOUT
+	F_HELP,											// F_TEMPO
 };
 
 static char		*parse_flag(char *arg, parse_fn_t *parse_fn);
@@ -64,6 +66,7 @@ void			parse_print(void *) {
 	for (i = 0; i < OPTS.scan_nb; ++i)
 		printf("%s ", SCAN_NAMES[OPTS.scans[i]]);
 	printf("\b \ntimeout: %ld\n", OPTS.timeout);
+	printf("temporization: %ld\n", OPTS.tempo);
 }
 
 static char		*save_port(uint32_t start, uint32_t end, uint8_t num, uint8_t range) {
@@ -173,6 +176,19 @@ static char		*parse_timeout(char *arg) {
 	return (*arg ? "Invalid timeout" : NULL);
 }
 
+static char		*parse_tempo(char *arg) {
+	if (!arg)
+		return ("Temporization not specified");
+	for (; *arg >= '0' && *arg <= '9'; ++arg) {
+		OPTS.tempo *= 10;
+		OPTS.tempo += *arg - '0';
+		if (OPTS.tempo >= MAX_TEMPO)
+			return ("Temporization is too big");
+	}
+	return (*arg ? "Invalid temporization" : NULL);
+}
+
+
 uint8_t			scan_idx(scan_t scan) {
 	uint8_t		i;
 
@@ -227,6 +243,7 @@ static char		*parse_flag(char *arg, parse_fn_t *parse_fn) {
 		parse_speedup,
 		parse_scan,
 		parse_timeout,
+		parse_tempo,
 	};
 	flag_t		flag;
 	uint8_t		i;
@@ -279,7 +296,8 @@ static char		*disp_help(char *err) {
 							"          --speedup    number of aditionnal threads (upto 250))\n"
 							"          --scan       scan types combined with a '+'\n"
 							"                       (SYN, NULL, ACK, FIN, XMAS, UDP)\n"
-							"          --timeout    time to wait for a response\n";
+							"          --timeout    time to wait for a response\n"
+							"          --tempo      sending temporization\n";
 
 	snprintf(buff, BUFF_SZ * 2, "%s\n\n%s",
 			err ? err : title, help);
@@ -309,6 +327,8 @@ char			*parse(char **argv) {
 		init_ports();
 	if (!(OPTS.flag & F_TIMEOUT))
 		OPTS.timeout = DEF_TIMEOUT;
+	if (!(OPTS.flag & F_TEMPO))
+		OPTS.tempo = DEF_TEMPO;
 	if (!(OPTS.flag & F_SCAN))
 		init_scans();
 	return (NULL);
