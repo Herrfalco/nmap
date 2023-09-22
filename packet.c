@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/11 14:41:31 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/11 22:05:40 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/22 09:13:53 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,30 +23,26 @@ static uint16_t packet_checksum(uint16_t *data, uint64_t nbytes) {
 }
 
 static void		packet_fill_tcp(packet_t *packet, struct sockaddr_in *dst, scan_t scan) {
-	packet->ipp->src = LOCAL.addr.sin_addr.s_addr;
+	packet->ipp->src = LOCAL.addr.s_addr;
 	packet->ipp->dst = dst->sin_addr.s_addr;
 	packet->ipp->prot = IPPROTO_TCP;
 	packet->ipp->tcp_seg_sz = htons(sizeof(struct tcphdr));
-	packet->tcph->source = htons(LOCAL.addr.sin_port + scan);
+	packet->tcph->source = htons(scan_2_port(scan));
 	packet->tcph->dest = dst->sin_port;
 	packet->tcph->doff = sizeof(struct tcphdr) / 4;
-	packet->tcph->fin = !!(scan & (ST_FIN | ST_XMAS));
-	packet->tcph->syn = !!(scan & ST_SYN);
-	packet->tcph->psh = !!(scan & ST_XMAS);
-	packet->tcph->ack = !!(scan & ST_ACK);
-	packet->tcph->urg = !!(scan & ST_XMAS);
+	packet->tcph->fin = scan == ST_FIN || scan == ST_XMAS;
+	packet->tcph->syn = scan == ST_SYN;
+	packet->tcph->psh = scan == ST_XMAS;
+	packet->tcph->ack = scan == ST_ACK;
+	packet->tcph->urg = scan == ST_XMAS;
 	packet->tcph->window = htons(MAX_WIN);
 	packet->tcph->check = packet_checksum((uint16_t *)packet->ipp,
 			sizeof(ip_pseudo_t) + sizeof(struct tcphdr));
 	bzero(packet->iph, sizeof(struct iphdr));
 }
 
-static void		packet_fill_icmp(void) {
-
-}
-
 static void		packet_fill_udp(packet_t *packet, struct sockaddr_in *dst, scan_t scan) {
-	packet->udph->source = htons(LOCAL.addr.sin_port + scan);
+	packet->udph->source = htons(scan_2_port(scan));
 	packet->udph->dest = dst->sin_port;
 	packet->udph->len = htons(sizeof(struct udphdr));
 	packet->udph->check = packet_checksum((uint16_t *)packet->udph, sizeof(struct udphdr));
@@ -58,7 +54,7 @@ static void		packet_fill_ip(packet_t *packet, in_addr_t dst, uint8_t prot) {
     packet->iph->ihl = sizeof(struct iphdr) / 4;
     packet->iph->ttl = 255;
     packet->iph->protocol = prot;
-	packet->iph->saddr = LOCAL.addr.sin_addr.s_addr;
+	packet->iph->saddr = LOCAL.addr.s_addr;
     packet->iph->daddr = dst;
 }
 
@@ -71,21 +67,14 @@ void			packet_init(packet_t *packet, uint8_t *data, uint64_t sz) {
 
 void			packet_fill(packet_t *packet, struct sockaddr_in *dst, scan_t scan) {
 	bzero(packet->iph, sizeof(packet_t));
-	switch (scan) {
-		case ST_UDP:
-			packet_fill_udp(packet, dst, scan);
-			packet_fill_ip(packet, dst->sin_addr.s_addr, IPPROTO_UDP);
-			packet->sz = sizeof(struct iphdr) + sizeof(struct udphdr);
-			break;
-		case ST_ICMP:
-			packet_fill_icmp();
-			packet_fill_ip(packet, dst->sin_addr.s_addr, IPPROTO_ICMP);
-			packet->sz = sizeof(struct iphdr) + sizeof(struct icmphdr);
-			break;
-		default:
-			packet_fill_tcp(packet, dst, scan);
-			packet_fill_ip(packet, dst->sin_addr.s_addr, IPPROTO_TCP);
-			packet->sz = sizeof(struct iphdr) + sizeof(struct tcphdr);
+	if (scan == ST_UDP) {
+		packet_fill_udp(packet, dst, scan);
+		packet_fill_ip(packet, dst->sin_addr.s_addr, IPPROTO_UDP);
+		packet->sz = sizeof(struct iphdr) + sizeof(struct udphdr);
+	} else {
+		packet_fill_tcp(packet, dst, scan);
+		packet_fill_ip(packet, dst->sin_addr.s_addr, IPPROTO_TCP);
+		packet->sz = sizeof(struct iphdr) + sizeof(struct tcphdr);
 	}
 }
 

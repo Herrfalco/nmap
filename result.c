@@ -21,7 +21,7 @@ static int64_t		port_idx(uint16_t port) {
 }
 
 static int64_t		scan_idx(uint16_t raw_port) {
-	switch (ntohs(raw_port) - LOCAL.addr.sin_port) {
+	switch (port_2_scan(ntohs(raw_port))) {
 		case ST_SYN:
 			return (0);
 		case ST_NULL:
@@ -57,12 +57,13 @@ void				result_set(packet_t *pkt, result_t res) {
 }
 
 void				result_print(void) {
-	int64_t		ip_i, port_i, scan_i, scan_nb = bit_set(OPTS.scan);
+	uint64_t		ip_i, scan_i;
+	int64_t			port_i;
 
 	for (ip_i = 0; ip_i < OPTS.ip_nb; ++ip_i) {
 		printf("IP address: %s\n", inet_ntoa(*(struct in_addr *)&OPTS.ips[ip_i]));
 		for (port_i = OPTS.port_nb - 1; port_i >= 0; --port_i) {
-			for (scan_i = 0; scan_i < scan_nb; ++scan_i) {
+			for (scan_i = 0; scan_i < OPTS.scan_nb; ++scan_i) {
 				if (RESULTS[ip_i][port_i][scan_i] == R_OPEN)
 					printf("%s %d: Open\n",
 						SCAN_NAMES[scan_i],

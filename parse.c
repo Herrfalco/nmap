@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/12 14:59:20 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/18 00:27:42 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/22 09:15:06 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,14 +20,7 @@ char		*SCAN_NAMES[] = {
 	"SYN", "NULL", "ACK", "FIN", "XMAS", "UDP",
 };
 
-opts_t			OPTS = { 
-	.ports = { 0 },
-	.port_nb = 0,
-	.ips = { 0 },
-	.ip_nb = 0,
-	.speedup = 0,
-	.scan = ST_ALL,
-};
+opts_t			OPTS = { 0 };
 
 static uint8_t	OPT_EXCL[] = {
 	F_PORTS | F_IP | F_FILE | F_SPEEDUP | F_SCAN,	// F_HELP
@@ -68,9 +61,8 @@ void			parse_print(void *) {
 	}
 	printf("%sspeedup: %ld\n", i ? "" : "\n", OPTS.speedup);
 	printf("scan: ");
-	for (i = 0; i < FLAGS_NB; ++i)
-		if (OPTS.scan & (1 << i))
-			printf("%s ", SCAN_NAMES[i]);
+	for (i = 0; i < OPTS.scan_nb; ++i)
+		printf("%s ", SCAN_NAMES[OPTS.scans[i]]);
 	printf("\b \ntimeout: %ld\n", OPTS.timeout);
 }
 
@@ -181,19 +173,30 @@ static char		*parse_timeout(char *arg) {
 	return (*arg ? "Invalid timeout" : NULL);
 }
 
+uint8_t			scan_idx(scan_t scan) {
+	uint8_t		i;
+
+	for (i = 0; i < OPTS.scan_nb; ++i)
+		if (OPTS.scans[i] == scan)
+			break;
+	return (i);
+}
+
+static uint8_t	scan_set(scan_t scan) {
+	return (scan_idx(scan) != OPTS.scan_nb);
+}
+
 static char		*parse_scan_name(char *arg) {
-	uint8_t			scan;
 	uint64_t		i;
 
 	for (i = 0; i < SCANS_NB; ++i)
 		if (!str_cmp(SCAN_NAMES[i], arg))
 			break;
-	scan = 1 << i;
 	if (i == SCANS_NB)
 		return ("Invalid scan type");
-	else if (scan & OPTS.scan)
+	else if (scan_set(i))
 		return ("Scan type duplicate");
-	OPTS.scan |= scan;
+	OPTS.scans[OPTS.scan_nb++] = i;
 	return (NULL);
 }
 
@@ -203,7 +206,6 @@ static char		*parse_scan(char *arg) {
 
 	if (!arg)
 		return ("Scan type not specified");
-	OPTS.scan = 0;
 	for (i = 0; arg[i]; ++i) {
 		if (arg[i] == '+') {
 			arg[i] = '\0';
@@ -289,6 +291,11 @@ static void		init_ports(void) {
 		OPTS.ports[OPTS.port_nb] = OPTS.port_nb + 1;
 }
 
+static void		init_scans(void) {
+	for (OPTS.scan_nb = 0; OPTS.scan_nb < SCANS_NB; ++OPTS.scan_nb)
+		OPTS.scans[OPTS.scan_nb] = OPTS.scan_nb;
+}
+
 char			*parse(char **argv) {
 	char		*error;
 
@@ -300,7 +307,17 @@ char			*parse(char **argv) {
 	}
 	if (!(OPTS.flag & F_PORTS))
 		init_ports();
-	if (!OPTS.timeout)
+	if (!(OPTS.flag & F_TIMEOUT))
 		OPTS.timeout = DEF_TIMEOUT;
+	if (!(OPTS.flag & F_SCAN))
+		init_scans();
 	return (NULL);
+}
+
+uint16_t			scan_2_port(scan_t scan) {
+	return (SRC_PORT + scan_idx(scan));
+}
+
+scan_t				port_2_scan(uint16_t port) {
+	return (OPTS.scans[port - SRC_PORT]);
 }

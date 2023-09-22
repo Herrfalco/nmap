@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/11 20:26:04 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/18 00:29:42 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/22 09:33:37 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -56,20 +56,19 @@ static char			*thrds_send(thrds_arg_t *args, pcap_t *cap) {
 	uint8_t					data[BUFF_SZ] = { 0 };
 	packet_t				packet;
 	struct sockaddr_in		dst = { .sin_family = AF_INET };
-	uint64_t				scan_nb = bit_set(OPTS.scan),
-							s, p, a, i, max;
+	uint64_t				s, p, a, i, max;
 
 	packet_init(&packet, data, 0);
 	for (i = args->job.idx, max = i + args->job.nb; i < max; ++i) {
 		if (recv_loop(100, cap, args))
 			return ("Can't get time");
-		s = i % scan_nb;
-		p = i / scan_nb % OPTS.port_nb;
-		a = i / scan_nb / OPTS.port_nb;
+		s = i % OPTS.scan_nb;
+		p = i / OPTS.scan_nb % OPTS.port_nb;
+		a = i / OPTS.scan_nb / OPTS.port_nb;
 		bzero(data, BUFF_SZ);
 		dst.sin_addr.s_addr = OPTS.ips[a];
 		dst.sin_port = htons(OPTS.ports[p]);
-		packet_fill(&packet, &dst, idx_2_scan(OPTS.scan, ST_SYN, ST_MAX, s));
+		packet_fill(&packet, &dst, OPTS.scans[s]);
 //		thrds_print_wrapper(args, (print_fn_t)packet_print, &packet);
 		if (sendto(SEND_SOCK, data, packet.sz, 0,
 					(struct sockaddr *)&dst,
@@ -93,7 +92,7 @@ static void			thrds_recv(thrds_arg_t *args, const struct pcap_pkthdr *pkt_hdr, c
 			case IPPROTO_TCP:
 				if (pkt_hdr->len < ETHH_SZ + IPH_SZ + TCPH_SZ)
 					return ;
-				switch (ntohs(packet.tcph->dest) - LOCAL.addr.sin_port) {
+				switch (port_2_scan(ntohs(packet.tcph->dest))) {
 					case ST_SYN:
 						if (packet.tcph->rst)
 							result_set(&packet, R_CLOSE);
@@ -119,7 +118,7 @@ static void			thrds_recv(thrds_arg_t *args, const struct pcap_pkthdr *pkt_hdr, c
 			case IPPROTO_UDP:
 				if (pkt_hdr->len < ETHH_SZ + IPH_SZ + UDPH_SZ)
 					return ;
-				if ((ntohs(packet.udph->dest) - LOCAL.addr.sin_port) == ST_UDP)
+				if (port_2_scan(ntohs(packet.udph->dest)) == ST_UDP)
 					result_set(&packet, R_OPEN);
 				break ;
 			case IPPROTO_ICMP:
@@ -133,7 +132,7 @@ static void			thrds_recv(thrds_arg_t *args, const struct pcap_pkthdr *pkt_hdr, c
 							|| packet.icmph->code == 13))
 					return ;
 				genh = (genh_t *)(packet.icmph + 1);
-				scan = ntohs(genh->dest) - LOCAL.addr.sin_port;
+				scan = port_2_scan(ntohs(genh->dest));
 				if (scan == ST_UDP) {
 					if (packet.icmph->code == 3)
 						result_set(&packet, R_CLOSE);
@@ -180,10 +179,9 @@ static int64_t		thrds_run(thrds_arg_t *args) {
 }
 
 char				*thrds_spawn(void) {
-	uint64_t		scan_nb = bit_set(OPTS.scan), i,
-					tot = OPTS.port_nb * OPTS.ip_nb * scan_nb,
+	uint64_t		tot = OPTS.port_nb * OPTS.ip_nb * OPTS.scan_nb,
 					div = tot / OPTS.speedup,
-					rem = tot % OPTS.speedup;
+					rem = tot % OPTS.speedup, i;
 
 	for (i = 0; i < OPTS.speedup; ++i) {
 		if (!(THRDS[i].job.nb = div + (i < rem)))
