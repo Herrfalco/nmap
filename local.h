@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/11 14:54:38 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/12 15:04:26 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/22 08:55:17 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,7 +17,7 @@
 
 typedef struct			local_s {
 	char				dev_name[BUFF_SZ];
-	struct sockaddr_in	addr;
+	struct in_addr		addr;
 }						local_t;
 
 extern local_t			LOCAL;
