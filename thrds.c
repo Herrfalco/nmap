@@ -163,7 +163,7 @@ static int64_t		thrds_run(thrds_arg_t *args) {
 		return (-1);
 	if ((args->err_ptr = filter_init(&filt, &args->job)))
 		return (-1);
-	thrds_print_wrapper(args, (print_fn_t )filter_print, &filt);
+//	thrds_print_wrapper(args, (print_fn_t )filter_print, &filt);
 	if (pcap_compile(cap, &fp, filt.data, 1,
 				PCAP_NETMASK_UNKNOWN) == PCAP_ERROR
 			|| pcap_setfilter(cap, &fp) == PCAP_ERROR) {

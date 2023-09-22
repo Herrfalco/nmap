@@ -57,20 +57,26 @@ void				result_set(packet_t *pkt, result_t res) {
 }
 
 void				result_print(void) {
-	int64_t		ip_i, port_i, scan_i, scan_nb = bit_set(OPTS.scan);
+	int64_t			ip_i, port_i, scan_i, scan_nb = bit_set(OPTS.scan);
+	struct servent	*servent;
 
-	for (ip_i = 0; ip_i < OPTS.ip_nb; ++ip_i) {
+	for (ip_i = 0; ip_i < (int64_t)OPTS.ip_nb; ++ip_i) {
 		printf("IP address: %s\n", inet_ntoa(*(struct in_addr *)&OPTS.ips[ip_i]));
+		printf("Open ports:\n");
+		printf("%-20s%-20s%-20s%-30s\n", "Port", "Service Name",
+			"Results", "Conclusion");
+		printf("---------------------------------------------------------------------------------\n");
 		for (port_i = OPTS.port_nb - 1; port_i >= 0; --port_i) {
+			servent = getservbyport(OPTS.ports[port_i], NULL);
+			if (servent)
+				printf("test: %d: %s\n", OPTS.ports[port_i], servent->s_name);
 			for (scan_i = 0; scan_i < scan_nb; ++scan_i) {
 				if (RESULTS[ip_i][port_i][scan_i] == R_OPEN)
-					printf("%s %d: Open\n",
-						SCAN_NAMES[scan_i],
-						OPTS.ports[port_i]);
-				else if (RESULTS[ip_i][port_i][scan_i] == R_CLOSE)
-					printf("%s %d: Closed\n",
-						SCAN_NAMES[scan_i],
-						OPTS.ports[port_i]);
+					printf("%-20d%-20s%-20s%-30s\n",
+						OPTS.ports[port_i],
+						!servent ? "Unassigned" : servent->s_name,
+						"SCAN_NAME(Open)",
+						"Open");;
 			}
 		}
 	}
