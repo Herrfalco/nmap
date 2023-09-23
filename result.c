@@ -66,11 +66,11 @@ static void			serv_name(uint16_t port, char *s_buff) {
 }
 
 static int			results_str(uint64_t scan_i, result_t res, char *r_buff) {
-	char	eol[50] = { 0 }, cat_buf[BUFF_SZ] = { 0 };
+	char	eol[32] = { 0 }, cat_buf[BUFF_SZ] = { 0 };
 
 	strcat(r_buff, SCAN_NAMES[scan_i]);
 	if (scan_i + 1 < OPTS.scan_nb)
-		sprintf(eol, "%-41s", "\n");
+		sprintf(eol, "%-31s", "\n");
 	else
 		sprintf(eol, "%s", "");
 	switch (res) {
