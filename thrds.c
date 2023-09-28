@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/11 20:26:04 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/22 19:18:01 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/28 09:31:22 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -179,6 +179,11 @@ static int64_t		thrds_run(thrds_arg_t *args) {
 	return (0);
 }
 
+void				thrds_single(void) {
+	THRDS->job.nb = OPTS.port_nb * OPTS.ip_nb;
+	thrds_run(THRDS);
+}
+
 char				*thrds_spawn(void) {
 	uint64_t		tot = OPTS.port_nb * OPTS.ip_nb,
 					div = tot / OPTS.speedup,
@@ -191,8 +196,7 @@ char				*thrds_spawn(void) {
 		THRDS[i].id = i;
 		if (pthread_create(&THRDS[i].thrd, NULL,
 				(void *)thrds_run, &THRDS[i]))
-			return (THRDS[i].err_ptr ?
-					THRDS[i].err_ptr : THRDS[i].err_buff);
+			return ("Can't create new thread");
 	}
 	return (NULL);
 }
