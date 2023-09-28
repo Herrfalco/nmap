@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/11 20:28:46 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/12 15:36:18 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/09/28 09:32:23 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,6 +27,7 @@ typedef void	*(*thrds_handler)(void *);
 
 char	*thrds_init(void);
 char	*thrds_spawn(void);
+void	thrds_single(void);
 
 extern	thrds_arg_t	THRDS[MAX_THRDS];
 
