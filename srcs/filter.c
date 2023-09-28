@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "filter.h"
+#include "../hdrs/filter.h"
 
 static char			*filt_add(filt_t *filt, char *data) {
 	uint64_t		len = strlen(data);

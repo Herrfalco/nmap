@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "packet.h"
+#include "../hdrs/packet.h"
 
 static uint16_t packet_checksum(uint16_t *data, uint64_t nbytes) {
     uint32_t	 sum;

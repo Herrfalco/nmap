@@ -1,12 +1,12 @@
 NAME	=	ft_nmap
-SRCS	=	main.c \
-		parse.c \
-		filter.c \
-		utils.c \
-		local.c \
-		thrds.c \
-		packet.c \
-		result.c
+SRCS	=	srcs/main.c \
+		srcs/parse.c \
+		srcs/filter.c \
+		srcs/utils.c \
+		srcs/local.c \
+		srcs/thrds.c \
+		srcs/packet.c \
+		srcs/result.c
 OBJS	=	$(SRCS:.c=.o)
 CC	=	gcc
 CFLAGS	=	-Wall -Wextra -Werror -lpcap -lpthread

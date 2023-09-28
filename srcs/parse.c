@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "parse.h"
+#include "../hdrs/parse.h"
 
 static char		*FLAG_NAMES[] = {
 	"help", "ports", "ip", "file", "speedup", "scan", "timeout", "tempo",

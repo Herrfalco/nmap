@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "includes.h"
+#include "../hdrs/includes.h"
 
 void			print_error(char *str) {
 	fprintf(stderr, "%s\n", str);

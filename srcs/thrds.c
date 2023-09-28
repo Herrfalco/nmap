@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "thrds.h"
+#include "../hdrs/thrds.h"
 
 int					SEND_SOCK = 0;
 pthread_mutex_t		PRINT = PTHREAD_MUTEX_INITIALIZER;

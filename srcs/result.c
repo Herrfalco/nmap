@@ -1,4 +1,4 @@
-#include "result.h"
+#include "../hdrs/result.h"
 
 results_t	RESULTS = { 0 };
 

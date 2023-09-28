@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "thrds.h"
+#include "../hdrs/thrds.h"
 
 int		main(int, char **argv) {
 	uint64_t		i;
