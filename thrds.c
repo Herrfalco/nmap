@@ -154,7 +154,7 @@ static void			thrds_recv(thrds_arg_t *args, const struct pcap_pkthdr *pkt_hdr, c
 static int64_t		thrds_run(thrds_arg_t *args) {
 	filt_t				filt = { 0 };
 	pcap_t				*cap;
-	struct bpf_program	fp;
+	struct bpf_program	fp = { 0 };
 
 	if (!(cap = pcap_open_live(LOCAL.dev_name,
 		PCAP_SNAPLEN_MAX, 0, PCAP_TIME_OUT, args->err_buff)))
@@ -169,6 +169,8 @@ static int64_t		thrds_run(thrds_arg_t *args) {
 		return (-1);
 	}
 	filter_destroy(&filt);
+	if (fp.bf_insns)
+		free(fp.bf_insns);
 	if ((args->err_ptr = thrds_send(args, cap)))
 		return (-1);
 	if (recv_loop(OPTS.timeout, cap, args))
