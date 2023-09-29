@@ -15,13 +15,16 @@
 
 #include "result.h"
 
-typedef struct	thrds_arg_s {
-	job_t		job;
-	char		err_buff[BUFF_SZ];
-	char		*err_ptr;
-	uint8_t		id;
-	pthread_t	thrd;
-}				thrds_arg_t;
+typedef struct			thrds_arg_s {
+	job_t				job;
+	char				err_buff[BUFF_SZ];
+	char				*err_ptr;
+	uint8_t				id;
+	pcap_t				*cap;
+	filt_t				filt;
+	struct bpf_program	fp;
+	pthread_t			thrd;
+}						thrds_arg_t;
 
 typedef void	*(*thrds_handler)(void *);
 

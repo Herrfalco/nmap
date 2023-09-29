@@ -6,7 +6,8 @@ SRCS	=	srcs/main.c \
 		srcs/local.c \
 		srcs/thrds.c \
 		srcs/packet.c \
-		srcs/result.c
+		srcs/result.c \
+		srcs/signal.c
 OBJS	=	$(SRCS:.c=.o)
 CC	=	gcc
 CFLAGS	=	-Wall -Wextra -Werror -lpcap -lpthread

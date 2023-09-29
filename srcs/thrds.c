@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../hdrs/thrds.h"
+#include "../hdrs/signal.h"
 
 int					SEND_SOCK = 0;
 pthread_mutex_t		PRINT = PTHREAD_MUTEX_INITIALIZER;
@@ -35,15 +35,16 @@ char				*thrds_init(void) {
 	return (NULL);
 }
 
-static int			recv_loop(uint64_t ms, pcap_t *cap, thrds_arg_t *args) {
+static int			recv_loop(uint64_t ms, thrds_arg_t *args) {
 	struct timeval	tv_start, tv_cur;
 
 	if (gettimeofday(&tv_start, NULL))
 		return (-1);
-	for (tv_cur = tv_start; !is_elapsed(&tv_start, &tv_cur, ms);) {
-		if (pcap_dispatch(cap, 0, (pcap_handler)thrds_recv, (void *)args)
+	for (tv_cur = tv_start; !is_elapsed(&tv_start, &tv_cur, ms)
+			&& !SIG_CATCH;) {
+		if (pcap_dispatch(args->cap, 0, (pcap_handler)thrds_recv, (void *)args)
 				== PCAP_ERROR) {
-			args->err_ptr = pcap_geterr(cap);
+			args->err_ptr = pcap_geterr(args->cap);
 			return (-1);
 		}
 		if (gettimeofday(&tv_cur, NULL))
@@ -52,7 +53,7 @@ static int			recv_loop(uint64_t ms, pcap_t *cap, thrds_arg_t *args) {
 	return (0);
 }
 
-static char			*thrds_send(thrds_arg_t *args, pcap_t *cap) {
+static char			*thrds_send(thrds_arg_t *args) {
 	uint8_t					data[BUFF_SZ] = { 0 };
 	packet_t				packet;
 	struct sockaddr_in		dst = { .sin_family = AF_INET };
@@ -71,7 +72,7 @@ static char			*thrds_send(thrds_arg_t *args, pcap_t *cap) {
 						(struct sockaddr *)&dst,
 						sizeof(struct sockaddr_in)) < 0)
 				return (strerror(errno));
-			if (recv_loop(OPTS.tempo, cap, args))
+			if (recv_loop(OPTS.tempo, args))
 				return ("Can't get time");
 		}
 	}
@@ -152,30 +153,28 @@ static void			thrds_recv(thrds_arg_t *args, const struct pcap_pkthdr *pkt_hdr, c
 }
 
 static int64_t		thrds_run(thrds_arg_t *args) {
-	filt_t				filt = { 0 };
-	pcap_t				*cap;
-	struct bpf_program	fp = { 0 };
-
-	if (!(cap = pcap_open_live(LOCAL.dev_name,
+	if (handle_sig())
+		return (-1);
+	if (!(args->cap = pcap_open_live(LOCAL.dev_name,
 		PCAP_SNAPLEN_MAX, 0, PCAP_TIME_OUT, args->err_buff)))
 		return (-1);
-	if ((args->err_ptr = filter_init(&filt, &args->job)))
+	if ((args->err_ptr = filter_init(&args->filt, &args->job)))
 		return (-1);
-//	thrds_print_wrapper(args, (print_fn_t)filter_print, &filt);
-	if (pcap_compile(cap, &fp, filt.data, 1,
+//	thrds_print_wrapper(args, (print_fn_t)filter_print, &args->filt);
+	if (pcap_compile(args->cap, &args->fp, args->filt.data, 1,
 				PCAP_NETMASK_UNKNOWN) == PCAP_ERROR
-			|| pcap_setfilter(cap, &fp) == PCAP_ERROR) {
-		args->err_ptr = pcap_geterr(cap);
+			|| pcap_setfilter(args->cap, &args->fp) == PCAP_ERROR) {
+		args->err_ptr = pcap_geterr(args->cap);
 		return (-1);
 	}
-	filter_destroy(&filt);
-	if (fp.bf_insns)
-		free(fp.bf_insns);
-	if ((args->err_ptr = thrds_send(args, cap)))
+	filter_destroy(&args->filt);
+	if (args->fp.bf_insns)
+		free(args->fp.bf_insns);
+	if ((args->err_ptr = thrds_send(args)))
 		return (-1);
-	if (recv_loop(OPTS.timeout, cap, args))
+	if (recv_loop(OPTS.timeout, args))
 		return (-1);
-	pcap_close(cap);
+	pcap_close(args->cap);
 	return (0);
 }
 
