@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/09 16:37:49 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/22 15:47:55 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/10/01 19:56:31 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,5 +28,6 @@ typedef struct		job_s {
 char			*filter_init(filt_t *filt, job_t *job);
 void			filter_print(filt_t *filt);
 void			filter_destroy(filt_t *filt);
+void			filter_bpf_free(struct bpf_program *bpf);
 
 #endif // FILTER_H

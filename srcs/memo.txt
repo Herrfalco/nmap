@@ -3,3 +3,12 @@
 - ajouter statics
 - interp results
 - adress name conversion
+
+#after thrds_init
+#- close send socket
+
+after thrds_spawn
+- pthread destroy
+#- pcap close
+#- filter free
+#- filter_program free

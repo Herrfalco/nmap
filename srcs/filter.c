@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/09 16:37:22 by fcadet            #+#    #+#             */
-/*   Updated: 2023/10/01 14:14:45 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/10/01 20:03:34 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,11 +16,8 @@ static char			*filt_add(filt_t *filt, char *data) {
 	uint64_t		len = str_len(data);
 	char			*new;
 
-	if (!(new = realloc(filt->data, (filt->sz + len + 1) * sizeof(char)))) {
-		free(filt->data);
-		filt->data = NULL;
+	if (!(new = realloc(filt->data, (filt->sz + len + 1) * sizeof(char))))
 		return ("Can't allocate memory for string extension");
-	}
 	str_cpy(new + filt->sz, data);
 	filt->data = new;
 	filt->sz += len;
@@ -83,4 +80,12 @@ void			filter_print(filt_t *filt) {
 void			filter_destroy(filt_t *filt) {
 	if (filt->data)
 		free(filt->data);
+	filt->data = NULL;
+}
+
+void			filter_bpf_free(struct bpf_program *bpf) {
+	if (bpf->bf_insns) {
+		free(bpf->bf_insns);
+		bpf->bf_insns = NULL;
+	}
 }

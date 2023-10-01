@@ -10,8 +10,8 @@ SRCS	=	srcs/main.c \
 		srcs/signal.c
 OBJS	=	$(SRCS:.c=.o)
 CC	=	gcc
-CFLAGS	=	-Wall -Wextra -Werror -lpcap -lpthread
-LIBS = -lpcap
+CFLAGS	=	-Wall -Wextra -Werror
+LIBS	=	-lpcap -lpthread
 
 all	:	$(NAME)
 

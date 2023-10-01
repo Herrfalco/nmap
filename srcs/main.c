@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/07 15:57:25 by fcadet            #+#    #+#             */
-/*   Updated: 2023/10/01 18:12:18 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/10/01 21:37:17 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,10 +19,10 @@ int		main(int, char **argv) {
 	struct timeval	start, end;
 	uint64_t		ms;
 
-	if (getuid())
-		return (print_main_error("ft_nmap must be run with sudo", 1));
 	if ((err = handle_sig()))
-		return (print_main_error(err, 2));
+		return (print_main_error(err, 1));
+	if (getuid())
+		return (print_main_error("ft_nmap must be run with sudo", 2));
 	if ((err = parse(argv)))
 		return (print_main_error(err, 3));
 	printf("\n%s\n", char_line('.', LINE_SZ / 2));
@@ -38,20 +38,20 @@ int		main(int, char **argv) {
 	printf("%s\n", char_line('.', LINE_SZ / 2));
 	if ((err = thrds_init()))
 		return (print_main_error(err, 5));
-	if (gettimeofday(&start, NULL))
-		return (print_main_error(strerror(errno), 6));
-	if (OPTS.speedup && !SIG_CATCH) {
-		if ((err = thrds_spawn()))
-			return (print_main_error(err, 7));
+	if (gettimeofday(&start, NULL)) {
+		thrds_fini();
+		return (print_main_error(strerror(errno), 7));
+	}
+
+	if (OPTS.speedup) {
+		err = thrds_spawn();
 		for (i = 0; i < OPTS.speedup; ++i)
 			pthread_join(THRDS[i].thrd, NULL);
 		for (i = 0; i < OPTS.speedup; ++i) {
-			if (THRDS[i].err_ptr) {
+			if (THRDS[i].err_ptr || *THRDS[i].err_buff) {
 				error = 1;
-				fprintf(stderr, "Error: %s\n", THRDS[i].err_ptr);
-			} else if (*THRDS[i].err_buff) {
-				error = 1;
-				fprintf(stderr, "Error: %s\n", THRDS[i].err_buff);
+				fprintf(stderr, "Error: Thread n.%ld: %s\n", i,
+						THRDS[i].err_ptr ? THRDS[i].err_ptr : THRDS[i].err_buff);
 			}
 		}
 	} else {
@@ -64,16 +64,19 @@ int		main(int, char **argv) {
 			fprintf(stderr, "Error: %s\n", THRDS->err_buff);
 		}
 	}
-	if (error)
-		return (7);
-	if (!SIG_CATCH) {
-		if (gettimeofday(&end, NULL)) {
-			fprintf(stderr, "Error: Can't get current time\n");
-			return (8);
-		}
+
+	thrds_fini();
+	if (err)
+		return (print_main_error(err, 10));
+	else if (error)
+		return (print_main_error("Thread failure detected", 11));
+
+	if (!sig_catch()) {
+		if (gettimeofday(&end, NULL))
+			return (print_main_error("Can't get current time", 8));
 		ms = (end.tv_sec - start.tv_sec) * 1000
 			+ (end.tv_usec - start.tv_usec) / 1000;
-		sprintf(buff, ">> Scan duration: %ld.%lds <<",
+		sprintf(buff, ">> Scan duration: %ld.%03lds <<",
 				ms / 1000, ms % 1000);
 		printf("%s\n", centered(buff, LINE_SZ / 2));
 		printf("%s\n", char_line('.', LINE_SZ / 2));

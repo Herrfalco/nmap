@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/11 20:26:04 by fcadet            #+#    #+#             */
-/*   Updated: 2023/10/01 12:53:21 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/10/01 21:47:52 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,7 +16,8 @@ int					SEND_SOCK = 0;
 pthread_mutex_t		PRINT = PTHREAD_MUTEX_INITIALIZER;
 thrds_arg_t			THRDS[MAX_THRDS] = { 0 };
 
-static void			thrds_recv(thrds_arg_t *args, const struct pcap_pkthdr *pkt_hdr, const uint8_t *pkt);
+static void			thrds_recv(thrds_arg_t *args, const struct pcap_pkthdr *pkt_hdr,
+		const uint8_t *pkt);
 
 static void			thrds_print_wrapper(thrds_arg_t *args, thrds_print_fn fn, void *arg) {
 	pthread_mutex_lock(&PRINT);
@@ -39,22 +40,35 @@ char				*thrds_init(void) {
 	return (NULL);
 }
 
-static int			recv_loop(uint64_t ms, thrds_arg_t *args) {
+void				thrds_fini(void) {
+	close(SEND_SOCK);
+}
+
+static void		thrds_clean(thrds_arg_t *args) {
+	filter_destroy(&args->filt);
+	filter_bpf_free(&args->bpf);
+	pcap_close(args->cap);
+}
+
+static char		*recv_loop(uint64_t ms, thrds_arg_t *args) {
 	struct timeval	tv_start, tv_cur;
 
 	if (gettimeofday(&tv_start, NULL))
-		return (-1);
-	for (tv_cur = tv_start; !is_elapsed(&tv_start, &tv_cur, ms)
-			&& !SIG_CATCH;) {
+		return ("Can't get current time");
+	for (tv_cur = tv_start; !is_elapsed(&tv_start, &tv_cur, ms);) {
+		if (sig_catch()) {
+			thrds_clean(args);
+			pthread_exit(NULL);
+		}
 		if (pcap_dispatch(args->cap, 0, (pcap_handler)thrds_recv, (void *)args)
 				== PCAP_ERROR) {
 			args->err_ptr = pcap_geterr(args->cap);
-			return (-1);
+			return ("Can't call dispatch function");
 		}
 		if (gettimeofday(&tv_cur, NULL))
-			return (-1);
+			return ("Can't get current time");
 	} 
-	return (0);
+	return (NULL);
 }
 
 static char			*thrds_send(thrds_arg_t *args) {
@@ -62,6 +76,7 @@ static char			*thrds_send(thrds_arg_t *args) {
 	packet_t				packet;
 	struct sockaddr_in		dst = { .sin_family = AF_INET };
 	uint64_t				s, p, a, i, max;
+	char					*err;
 
 	packet_init(&packet, data, BUFF_SZ);
 	for (i = args->job.idx, max = i + args->job.nb; i < max; ++i) {
@@ -76,8 +91,8 @@ static char			*thrds_send(thrds_arg_t *args) {
 						(struct sockaddr *)&dst,
 						sizeof(struct sockaddr_in)) < 0)
 				return (strerror(errno));
-			if (recv_loop(OPTS.tempo, args))
-				return ("Can't get time");
+			if ((err = recv_loop(OPTS.tempo, args)))
+				return (err);
 		}
 	}
 	return (NULL);
@@ -92,7 +107,8 @@ static void			thrds_recv(thrds_arg_t *args, const struct pcap_pkthdr *pkt_hdr, c
 	if (ntohs(ethh->ether_type) == ETHERTYPE_IP
 			&& pkt_hdr->len == pkt_hdr->caplen
 			&& pkt_hdr->len >= ETHH_SZ + IPH_SZ) {
-		packet_init(&packet, (void *)((struct ether_header *)pkt + 1), pkt_hdr->len - sizeof(struct ether_header));
+		packet_init(&packet, (void *)((struct ether_header *)pkt + 1),
+				pkt_hdr->len - sizeof(struct ether_header));
 		switch(packet.iph->protocol) {
 			case IPPROTO_TCP:
 				if (pkt_hdr->len < ETHH_SZ + IPH_SZ + TCPH_SZ)
@@ -153,33 +169,27 @@ static void			thrds_recv(thrds_arg_t *args, const struct pcap_pkthdr *pkt_hdr, c
 //		thrds_print_wrapper(args, (thrds_print_fn)packet_print, &packet);
 	} else
 		thrds_print_wrapper(args, (thrds_print_fn)print_error,
-			"Recv Error: No IP type packet or Trunked packet");
+			"Corrupted packet received");
 }
 
-static int64_t		thrds_run(thrds_arg_t *args) {
-	if (handle_sig())
-		return (-1);
+static void		thrds_run(thrds_arg_t *args) {
 	if (!(args->cap = pcap_open_live(LOCAL.dev_name,
-		PCAP_SNAPLEN_MAX, 0, PCAP_TIME_OUT, args->err_buff)))
-		return (-1);
-	if ((args->err_ptr = filter_init(&args->filt, &args->job)))
-		return (-1);
+		PCAP_SNAPLEN_MAX, 0, PCAP_TIME_OUT, args->err_buff))
+		|| (args->err_ptr = filter_init(&args->filt, &args->job)))
+		return (thrds_clean(args));
 //	thrds_print_wrapper(args, (thrds_print_fn)filter_print, &args->filt);
-	if (pcap_compile(args->cap, &args->fp, args->filt.data, 1,
+	if (pcap_compile(args->cap, &args->bpf, args->filt.data, 1,
 				PCAP_NETMASK_UNKNOWN) == PCAP_ERROR
-			|| pcap_setfilter(args->cap, &args->fp) == PCAP_ERROR) {
+			|| pcap_setfilter(args->cap, &args->bpf) == PCAP_ERROR) {
 		args->err_ptr = pcap_geterr(args->cap);
-		return (-1);
+		return (thrds_clean(args));
 	}
 	filter_destroy(&args->filt);
-	if (args->fp.bf_insns)
-		free(args->fp.bf_insns);
+	filter_bpf_free(&args->bpf);
 	if ((args->err_ptr = thrds_send(args)))
-		return (-1);
-	if (recv_loop(OPTS.timeout, args))
-		return (-1);
-	pcap_close(args->cap);
-	return (0);
+		return (thrds_clean(args));
+	args->err_ptr = recv_loop(OPTS.timeout, args);
+	return (thrds_clean(args));
 }
 
 void				thrds_single(void) {
@@ -198,8 +208,11 @@ char				*thrds_spawn(void) {
 		THRDS[i].job.idx = i * div + (i < rem ? i : rem);
 		THRDS[i].id = i;
 		if (pthread_create(&THRDS[i].thrd, NULL,
-				(void *)thrds_run, &THRDS[i]))
-			return ("Can't create new thread");
+				(void *)thrds_run, &THRDS[i])) {
+			sig_stop();
+			OPTS.speedup = i;
+			return ("Can't spawn every speedup threads");
+		}
 	}
 	return (NULL);
 }

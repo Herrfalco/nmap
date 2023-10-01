@@ -1,9 +1,25 @@
 #include "../hdrs/thrds.h"
 
-int SIG_CATCH = 0;
+static pthread_mutex_t		SIG_MUT = PTHREAD_MUTEX_INITIALIZER;
+static int					SIG_CATCH = 0;
 
 static void		sig_action(int) {
 	SIG_CATCH = 1;
+}
+
+void			sig_stop(void) {
+	pthread_mutex_lock(&SIG_MUT);
+	SIG_CATCH = 1;
+	pthread_mutex_unlock(&SIG_MUT);
+}
+
+uint8_t			sig_catch(void) {
+	uint8_t		res;
+
+	pthread_mutex_lock(&SIG_MUT);
+	res = SIG_CATCH;
+	pthread_mutex_unlock(&SIG_MUT);
+	return (res);
 }
 
 char			*handle_sig() {
@@ -21,5 +37,5 @@ char			*handle_sig() {
 	for (i = 0; i < 8; ++i)
 		if ((err = sigaction(sig[i], &act, NULL)))
 			return (strerror(err));
-	return (0);
+	return (NULL);
 }

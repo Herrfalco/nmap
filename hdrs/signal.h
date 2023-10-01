@@ -3,8 +3,8 @@
 
 #include "thrds.h"
 
-char	*handle_sig(void);
-
-extern int	SIG_CATCH;
+char			*handle_sig(void);
+uint8_t			sig_catch(void);
+void			sig_stop(void);
 
 #endif
