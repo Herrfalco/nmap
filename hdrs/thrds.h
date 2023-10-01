@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/11 20:28:46 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/28 09:32:23 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/10/01 12:47:12 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,6 +27,7 @@ typedef struct			thrds_arg_s {
 }						thrds_arg_t;
 
 typedef void	*(*thrds_handler)(void *);
+typedef void	(*thrds_print_fn)(void *);
 
 char	*thrds_init(void);
 char	*thrds_spawn(void);

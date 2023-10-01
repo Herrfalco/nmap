@@ -6,14 +6,15 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/12 14:59:20 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/22 18:52:11 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/10/01 18:37:22 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../hdrs/parse.h"
 
 static char		*FLAG_NAMES[] = {
-	"help", "ports", "ip", "file", "speedup", "scan", "timeout", "tempo",
+	"help", "ports", "ip", "file", "speedup",
+	"scan", "timeout", "tempo", "revert",
 };
 
 char		*SCAN_NAMES[] = {
@@ -31,6 +32,7 @@ static uint8_t	OPT_EXCL[] = {
 	F_HELP,											// F_SCAN
 	F_HELP,											// F_TIMEOUT
 	F_HELP,											// F_TEMPO
+	F_HELP,											// F_REVERT
 };
 
 static char		*parse_flag(char *arg, parse_fn_t *parse_fn);
@@ -40,9 +42,17 @@ void			parse_print(void *) {
 	uint64_t		i;
 	uint16_t		lst;
 	uint8_t			range = 0;
+	char			buff[BUFF_SZ];
 
-	printf("help: %s\n", OPTS.flag & F_HELP ? "true" : "false");
-	printf("ports: %d", (lst = *OPTS.ports));
+	sprintf(buff, "%-*s", TITLE_SZ, "IPs:");
+	printf("    %s", buff);
+	for (i = 0; i < OPTS.ip_nb; ++i) {
+		ip.s_addr = OPTS.ips[i];
+		sprintf(buff, "%*s", !!i * (TITLE_SZ + 4), "");
+		printf("%s%s\n", buff, inet_ntoa(ip));
+	}
+	sprintf(buff, "%-*s", TITLE_SZ, "Ports:");
+	printf("    %s%d", buff, (lst = *OPTS.ports));
 	for (i = 1; i < OPTS.port_nb; lst = OPTS.ports[i], ++i) {
 		if (OPTS.ports[i] - lst > 1) {
 			if (range)
@@ -56,17 +66,17 @@ void			parse_print(void *) {
 	if (range)
 		printf("-%d", lst);
 	printf(" (%ld ports)\n", OPTS.port_nb);
-	printf("ips: ");
-	for (i = 0; i < OPTS.ip_nb; ++i) {
-		ip.s_addr = OPTS.ips[i];
-		printf("%s%s\n", i ? "     " : "", inet_ntoa(ip));
-	}
-	printf("%sspeedup: %ld\n", i ? "" : "\n", OPTS.speedup);
-	printf("scan: ");
+	sprintf(buff, "%-*s", TITLE_SZ, "Scans:");
+	printf("    %s", buff);
 	for (i = 0; i < OPTS.scan_nb; ++i)
 		printf("%s ", SCAN_NAMES[OPTS.scans[i]]);
-	printf("\b \ntimeout: %ld\n", OPTS.timeout);
-	printf("temporization: %ld\n", OPTS.tempo);
+	printf("\n");
+	sprintf(buff, "%-*s", TITLE_SZ, "Speedup:");
+	printf("    %s%ld threads\n", buff, OPTS.speedup);
+	sprintf(buff, "%-*s", TITLE_SZ, "Timeout:");
+	printf("    %s%ldms\n", buff, OPTS.timeout);
+	sprintf(buff, "%-*s", TITLE_SZ, "Tempo:");
+	printf("    %s%ldms\n", buff, OPTS.tempo);
 }
 
 static char		*save_port(uint32_t start, uint32_t end, uint8_t num, uint8_t range) {
@@ -244,6 +254,7 @@ static char		*parse_flag(char *arg, parse_fn_t *parse_fn) {
 		parse_scan,
 		parse_timeout,
 		parse_tempo,
+		NULL,
 	};
 	flag_t		flag;
 	uint8_t		i;
@@ -286,7 +297,7 @@ static char		*parse_args(char **argv) {
 
 static char		*disp_help(char *err) {
 	static char		buff[BUFF_SZ * 2] = { 0 },
-					*title = "FT_NMAP v1.0 - 42 Paris's project, by fcadet & apitoise (9/2023)",
+					*title = "FT_NMAP v1.3 - 42 Paris's project, by fcadet & apitoise (09/2023)",
 					*help = "Usage:    ft_nmap [--ip IP] or [--file FILE] or [--help]\n\n"
 							"Options:  --help       display help informations\n"
 							"          --ports      ascending ports or range of ports (max 1024)\n"
@@ -297,7 +308,8 @@ static char		*disp_help(char *err) {
 							"          --scan       scan types combined with a '+'\n"
 							"                       (SYN, NULL, ACK, FIN, XMAS, UDP)\n"
 							"          --timeout    time to wait for a response\n"
-							"          --tempo      sending temporization\n";
+							"          --tempo      sending temporization\n"
+							"          --revert     inverted result (not open)";
 
 	snprintf(buff, BUFF_SZ * 2, "%s\n\n%s",
 			err ? err : title, help);
@@ -321,7 +333,7 @@ char			*parse(char **argv) {
 		return (disp_help(error));
 	else if (OPTS.flag & F_HELP) {
 		printf("%s\n", disp_help(NULL));
-		return (NULL);
+		exit(0);
 	}
 	if (!(OPTS.flag & F_PORTS))
 		init_ports();

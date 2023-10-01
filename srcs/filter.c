@@ -6,19 +6,22 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/09 16:37:22 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/22 18:06:52 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/10/01 14:14:45 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../hdrs/filter.h"
 
 static char			*filt_add(filt_t *filt, char *data) {
-	uint64_t		len = strlen(data);
+	uint64_t		len = str_len(data);
 	char			*new;
 
-	if (!(new = realloc(filt->data, (filt->sz + len + 1) * sizeof(char))))
+	if (!(new = realloc(filt->data, (filt->sz + len + 1) * sizeof(char)))) {
+		free(filt->data);
+		filt->data = NULL;
 		return ("Can't allocate memory for string extension");
-	strcpy(new + filt->sz, data);
+	}
+	str_cpy(new + filt->sz, data);
 	filt->data = new;
 	filt->sz += len;
 	return (NULL);
@@ -48,7 +51,6 @@ char				*filter_init(filt_t *filt, job_t *job) {
 		sprintf(buff, "(src host %s and (", inet_ntoa(*(struct in_addr *)&OPTS.ips[i]) );
 		if ((err = filt_add(filt, buff)))
 			return (err);
-
 		for (; !stop && p < OPTS.port_nb; ++p) {
 			if ((i * OPTS.port_nb + p + 1) >= max)
 				stop = 1;

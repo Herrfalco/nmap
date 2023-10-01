@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/11 20:26:04 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/28 09:31:22 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/10/01 12:53:21 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,11 +18,15 @@ thrds_arg_t			THRDS[MAX_THRDS] = { 0 };
 
 static void			thrds_recv(thrds_arg_t *args, const struct pcap_pkthdr *pkt_hdr, const uint8_t *pkt);
 
-static void			thrds_print_wrapper(thrds_arg_t *args, print_fn_t fn, void *arg) {
+static void			thrds_print_wrapper(thrds_arg_t *args, thrds_print_fn fn, void *arg) {
 	pthread_mutex_lock(&PRINT);
 	printf("%u > ", args->id);
 	fn(arg);
 	pthread_mutex_unlock(&PRINT);
+}
+
+static void			print_error(char *err) {
+	print_main_error(err, 0);
 }
 
 char				*thrds_init(void) {
@@ -67,7 +71,7 @@ static char			*thrds_send(thrds_arg_t *args) {
 		dst.sin_port = htons(OPTS.ports[p]);
 		for (s = 0; s < OPTS.scan_nb; ++s) {
 			packet_fill(&packet, &dst, OPTS.scans[s]);
-//			thrds_print_wrapper(args, (print_fn_t)packet_print, &packet);
+//			thrds_print_wrapper(args, (thrds_print_fn)packet_print, &packet);
 			if (sendto(SEND_SOCK, data, packet.sz, 0,
 						(struct sockaddr *)&dst,
 						sizeof(struct sockaddr_in)) < 0)
@@ -146,9 +150,9 @@ static void			thrds_recv(thrds_arg_t *args, const struct pcap_pkthdr *pkt_hdr, c
 			default:
 				break ;
 		}
-//		thrds_print_wrapper(args, (print_fn_t)packet_print, &packet);
+//		thrds_print_wrapper(args, (thrds_print_fn)packet_print, &packet);
 	} else
-		thrds_print_wrapper(args, (print_fn_t)print_error,
+		thrds_print_wrapper(args, (thrds_print_fn)print_error,
 			"Recv Error: No IP type packet or Trunked packet");
 }
 
@@ -160,7 +164,7 @@ static int64_t		thrds_run(thrds_arg_t *args) {
 		return (-1);
 	if ((args->err_ptr = filter_init(&args->filt, &args->job)))
 		return (-1);
-//	thrds_print_wrapper(args, (print_fn_t)filter_print, &args->filt);
+//	thrds_print_wrapper(args, (thrds_print_fn)filter_print, &args->filt);
 	if (pcap_compile(args->cap, &args->fp, args->filt.data, 1,
 				PCAP_NETMASK_UNKNOWN) == PCAP_ERROR
 			|| pcap_setfilter(args->cap, &args->fp) == PCAP_ERROR) {

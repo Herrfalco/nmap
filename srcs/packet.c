@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/11 14:41:31 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/22 17:12:25 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/10/01 13:55:52 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,7 +26,7 @@ static void		packet_fill_tcp(packet_t *packet, struct sockaddr_in *dst, scan_t s
 	packet->ipp->src = LOCAL.addr.s_addr;
 	packet->ipp->dst = dst->sin_addr.s_addr;
 	packet->ipp->prot = IPPROTO_TCP;
-	packet->ipp->tcp_seg_sz = htons(sizeof(struct tcphdr));
+	packet->ipp->seg_sz = htons(sizeof(struct tcphdr));
 	packet->tcph->source = htons(scan_2_port(scan));
 	packet->tcph->dest = dst->sin_port;
 	packet->tcph->doff = sizeof(struct tcphdr) / 4;
@@ -42,10 +42,15 @@ static void		packet_fill_tcp(packet_t *packet, struct sockaddr_in *dst, scan_t s
 }
 
 static void		packet_fill_udp(packet_t *packet, struct sockaddr_in *dst, scan_t scan) {
+	packet->ipp->src = LOCAL.addr.s_addr;
+	packet->ipp->dst = dst->sin_addr.s_addr;
+	packet->ipp->prot = IPPROTO_UDP;
+	packet->ipp->seg_sz = htons(sizeof(struct udphdr));
 	packet->udph->source = htons(scan_2_port(scan));
 	packet->udph->dest = dst->sin_port;
 	packet->udph->len = htons(sizeof(struct udphdr));
-	packet->udph->check = packet_checksum((uint16_t *)packet->udph, sizeof(struct udphdr));
+	packet->udph->check = packet_checksum((uint16_t *)packet->ipp,
+			sizeof(ip_pseudo_t) + sizeof(struct udphdr));
 	bzero(packet->iph, sizeof(struct iphdr));
 }
 
@@ -78,6 +83,7 @@ void			packet_fill(packet_t *packet, struct sockaddr_in *dst, scan_t scan) {
 	}
 }
 
+/*
 void			packet_print(packet_t *packet) {
 	switch (packet->iph->protocol) {
 		case (IPPROTO_TCP):
@@ -118,3 +124,4 @@ void			packet_print(packet_t *packet) {
 					inet_ntoa(*(struct in_addr *)&packet->iph->daddr));
 	}
 }
+*/

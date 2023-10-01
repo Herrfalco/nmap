@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/12 15:04:30 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/22 09:17:29 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/10/01 18:10:19 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,13 +15,16 @@
 
 #include "includes.h"
 
-typedef void	(*print_fn_t)(void *);
-
-void			print_error(char *str);
+int				print_main_error(char *str, int ret);
 int				str_n_cmp(char *s1, char *s2, uint64_t n);
 int				str_cmp(char *s1, char *s2);
+void			str_n_cpy(char *dst, char *src, uint64_t n);
+void			str_cpy(char *dst, char *src);
+uint64_t		str_len(char *s);
 uint8_t			bit_set(uint8_t byte);
 uint8_t			is_elapsed(struct timeval *tv_start,
 					struct timeval *tv_cur, time_t delta);
+char			*char_line(char c, uint64_t sz);
+char			*centered(char *str, uint64_t width);
 
 #endif // UTILS_H

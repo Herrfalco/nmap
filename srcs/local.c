@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/11 14:55:43 by fcadet            #+#    #+#             */
-/*   Updated: 2023/09/22 08:56:00 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/10/01 17:49:49 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,7 +30,7 @@ char		*local_init(void) {
 				&& (dev->flags & PCAP_IF_RUNNING)) {
             for (addr = dev->addresses; addr; addr = addr->next) {
                 if (addr->addr && addr->addr->sa_family == AF_INET) {
-					strncpy(LOCAL.dev_name, dev->name, BUFF_SZ);
+					str_n_cpy(LOCAL.dev_name, dev->name, BUFF_SZ);
 					LOCAL.addr = ((struct sockaddr_in *)addr->addr)->sin_addr;
 					pcap_freealldevs(all_devs);
 					return (NULL);
@@ -43,6 +43,10 @@ char		*local_init(void) {
 }
 
 void		local_print(void *) {
-	printf("device: %s, IP: %s\n", LOCAL.dev_name,
-			inet_ntoa(LOCAL.addr));
+	char	buff[BUFF_SZ];
+
+	sprintf(buff, "%-*s", TITLE_SZ, "Interface:");
+	printf("    %s%s\n", buff, LOCAL.dev_name);
+	sprintf(buff, "%-*s", TITLE_SZ, "IP address:");
+	printf("    %s%s\n", buff, inet_ntoa(LOCAL.addr));
 }

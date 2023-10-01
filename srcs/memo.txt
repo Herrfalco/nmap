@@ -1,0 +1,5 @@
+- fonctions interdites (nm -U)
+- includes inutiles
+- ajouter statics
+- interp results
+- adress name conversion
