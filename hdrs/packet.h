@@ -37,6 +37,6 @@ typedef struct			packet_s {
 
 void	packet_init(packet_t *packet, uint8_t *data, uint64_t sz);
 void	packet_fill(packet_t *packet, struct sockaddr_in *dst, scan_t scan);
-//void	packet_print(packet_t *packet);
+void	packet_print(packet_t *packet);
 
 #endif // PACKET_H

@@ -217,7 +217,7 @@ static char		*parse_tempo(char *arg) {
 }
 
 
-uint8_t			scan_idx(scan_t scan) {
+static uint8_t	scan_idx(scan_t scan) {
 	uint8_t		i;
 
 	for (i = 0; i < OPTS.scan_nb; ++i)

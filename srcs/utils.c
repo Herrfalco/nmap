@@ -32,6 +32,11 @@ void			str_cpy(char *dst, char *src) {
 	*dst = '\0';
 }
 
+void			str_cat(char *s1, char *s2) {
+	for (; *s1; ++s1);
+	str_cpy(s1, s2);
+}
+
 int				str_n_cmp(char *s1, char *s2, uint64_t n) {
 	for (; n && *s1 && *s1 == *s2; --n, ++s1, ++s2);
 	return (n ? *s1 - *s2 : 0);

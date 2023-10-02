@@ -117,7 +117,7 @@ static void			thrds_recv(thrds_arg_t *args, const struct pcap_pkthdr *pkt_hdr, c
 					case ST_SYN:
 						if (packet.tcph->rst)
 							result_set(&packet, R_CLOSE);
-						else if (packet.tcph->ack)
+						else if (packet.tcph->ack || packet.tcph->syn)
 							result_set(&packet, R_OPEN);
 						break;
 					case ST_NULL:
@@ -154,19 +154,13 @@ static void			thrds_recv(thrds_arg_t *args, const struct pcap_pkthdr *pkt_hdr, c
 					return ;
 				genh = (genh_t *)(packet.icmph + 1);
 				scan = port_2_scan(ntohs(genh->dest));
-				if (scan == ST_UDP) {
-					if (packet.icmph->code == 3)
-						result_set(&packet, R_CLOSE);
-					else
-						result_set(&packet, R_FILTERED);
-				} else if (scan == ST_ACK)
-					result_set(&packet, R_OPEN_CLOSE);
-				else
-					result_set(&packet, R_FILTERED);
+				result_set(&packet,
+					(scan == ST_UDP && packet.icmph->code == 3)
+					? R_CLOSE : R_FILTERED);
 			default:
 				break ;
 		}
-//		thrds_print_wrapper(args, (thrds_print_fn)packet_print, &packet);
+		thrds_print_wrapper(args, (thrds_print_fn)packet_print, &packet);
 	} else
 		thrds_print_wrapper(args, (thrds_print_fn)print_error,
 			"Corrupted packet received");
@@ -177,7 +171,7 @@ static void		thrds_run(thrds_arg_t *args) {
 		PCAP_SNAPLEN_MAX, 0, PCAP_TIME_OUT, args->err_buff))
 		|| (args->err_ptr = filter_init(&args->filt, &args->job)))
 		return (thrds_clean(args));
-//	thrds_print_wrapper(args, (thrds_print_fn)filter_print, &args->filt);
+	thrds_print_wrapper(args, (thrds_print_fn)filter_print, &args->filt);
 	if (pcap_compile(args->cap, &args->bpf, args->filt.data, 1,
 				PCAP_NETMASK_UNKNOWN) == PCAP_ERROR
 			|| pcap_setfilter(args->cap, &args->bpf) == PCAP_ERROR) {

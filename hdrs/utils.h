@@ -20,6 +20,7 @@ int				str_n_cmp(char *s1, char *s2, uint64_t n);
 int				str_cmp(char *s1, char *s2);
 void			str_n_cpy(char *dst, char *src, uint64_t n);
 void			str_cpy(char *dst, char *src);
+void			str_cat(char *s1, char *s2);
 uint64_t		str_len(char *s);
 uint8_t			bit_set(uint8_t byte);
 uint8_t			is_elapsed(struct timeval *tv_start,

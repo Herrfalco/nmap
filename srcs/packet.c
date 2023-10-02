@@ -83,7 +83,6 @@ void			packet_fill(packet_t *packet, struct sockaddr_in *dst, scan_t scan) {
 	}
 }
 
-/*
 void			packet_print(packet_t *packet) {
 	switch (packet->iph->protocol) {
 		case (IPPROTO_TCP):
@@ -124,4 +123,3 @@ void			packet_print(packet_t *packet) {
 					inet_ntoa(*(struct in_addr *)&packet->iph->daddr));
 	}
 }
-*/

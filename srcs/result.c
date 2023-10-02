@@ -36,25 +36,24 @@ static void			results_str(uint64_t scan_i, result_t res, char *r_buff) {
 	char	buff[BUFF_SZ] = { 0 };
 
 	if (scan_i)
-		strcat(r_buff, char_line(' ', LINE_SZ / 3 * 2 + 2));
+		str_cat(r_buff, char_line(' ', LINE_SZ / 3 * 2 + 2));
 	sprintf(buff, "%-5s", SCAN_NAMES[OPTS.scans[scan_i]]);
-	strcat(r_buff, buff);
+	str_cat(r_buff, buff);
 	if (res)
-		strcat(r_buff, RESULT_STR[res]);
+		str_cat(r_buff, RESULT_STR[res]);
 	else {
 		switch(OPTS.scans[scan_i]) {
 			case ST_SYN:
-				strcat(r_buff, RESULT_STR[R_FILTERED]);
-				break;
+				__attribute__((fallthrough));
 			case ST_ACK:
-				strcat(r_buff, RESULT_STR[R_OPEN_CLOSE]);
+				str_cat(r_buff, RESULT_STR[R_FILTERED]);
 				break;
 			default:
-				strcat(r_buff, RESULT_STR[R_OPEN_FILTERED]);
+				str_cat(r_buff, RESULT_STR[R_OPEN_FILTERED]);
 				break;
 		}
 	}
-	strcat(r_buff, "\n");
+	str_cat(r_buff, "\n");
 }
 
 void				result_print(void) {

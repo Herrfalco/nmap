@@ -18,14 +18,10 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <arpa/inet.h>
-#include <netinet/ip.h>
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
 #include <netinet/ip_icmp.h>
-#include <net/if.h>
 #include <signal.h>
-#include <ifaddrs.h>
 #include <errno.h>
 #include <pthread.h>
 #include <pcap/pcap.h>
@@ -34,7 +30,6 @@
 
 #define				BUFF_SZ				0x1000
 #define				MAX_PORTS			0x400
-#define				MIN_PORT_VAL		0xc000
 #define				MAX_PORT_VAL		0xffff
 #define				MAX_IPS				0x10
 #define				SRC_PORT			55555
