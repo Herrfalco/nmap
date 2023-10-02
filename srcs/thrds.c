@@ -98,10 +98,9 @@ static char			*thrds_send(thrds_arg_t *args) {
 }
 
 static void			thrds_recv(thrds_arg_t *args, const struct pcap_pkthdr *pkt_hdr, const uint8_t *pkt) {
-	packet_t			packet;
+	packet_t			packet, icmp_body;
+	uint32_t			tmp;
 	struct ether_header	*ethh = (struct ether_header *)pkt;
-	genh_t				*genh;
-	scan_t				scan;
 
 	if (ntohs(ethh->ether_type) == ETHERTYPE_IP
 			&& pkt_hdr->len == pkt_hdr->caplen
@@ -143,7 +142,7 @@ static void			thrds_recv(thrds_arg_t *args, const struct pcap_pkthdr *pkt_hdr, c
 				break ;
 			case IPPROTO_ICMP:
 				if (pkt_hdr->len < ETHH_SZ + IPH_SZ
-						+ ICMPH_SZ + HDR_PORTS_SZ
+						+ ICMPH_SZ + IPH_SZ + HDR_PORTS_SZ
 						|| packet.icmph->type != 3
 						|| !((packet.icmph->code >= 1
 								&& packet.icmph->code <= 3)
@@ -151,10 +150,17 @@ static void			thrds_recv(thrds_arg_t *args, const struct pcap_pkthdr *pkt_hdr, c
 							|| packet.icmph->code == 10
 							|| packet.icmph->code == 13))
 					return ;
-				genh = (genh_t *)(packet.icmph + 1);
-				scan = port_2_scan(ntohs(genh->dest));
-				result_set(&packet,
-					(scan == ST_UDP && packet.icmph->code == 3)
+				packet_init(&icmp_body, (uint8_t *)(packet.icmph + 1),
+					packet.sz - IPH_SZ - ICMPH_SZ);
+				tmp = icmp_body.tcph->source;
+				icmp_body.tcph->source = icmp_body.tcph->dest;
+				icmp_body.tcph->dest = tmp;
+				tmp = icmp_body.iph->saddr;
+				icmp_body.iph->saddr = icmp_body.iph->daddr;
+				icmp_body.iph->daddr = tmp;
+				result_set(&icmp_body,
+					(port_2_scan(ntohs(icmp_body.tcph->dest)) == ST_UDP
+					&& packet.icmph->code == 3)
 					? R_CLOSE : R_FILTERED);
 			default:
 				break ;
@@ -169,7 +175,7 @@ static void		thrds_run(thrds_arg_t *args) {
 	if (!(args->cap = pcap_open_live(LOCAL.dev_name,
 		PCAP_SNAPLEN_MAX, 0, PCAP_TIME_OUT, args->err_buff)))
 		return (thrds_clean(args));
-	thrds_print_wrapper(args, (thrds_print_fn)filter_print, args->filt);
+//	thrds_print_wrapper(args, (thrds_print_fn)filter_print, args->filt);
 	if (pcap_compile(args->cap, &args->bpf, args->filt, 1,
 				PCAP_NETMASK_UNKNOWN) == PCAP_ERROR
 			|| pcap_setfilter(args->cap, &args->bpf) == PCAP_ERROR) {

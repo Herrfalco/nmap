@@ -2,24 +2,20 @@
 
 static results_t	RESULTS = { 0 };
 static char			*RESULT_STR[] = {
-	NULL, "(Open)", "(Close)", "(Filtered)", "(Unfiltered)", "(Open|Close)", "(Open|Filtered)",
+	NULL, "(Open)", "(Close)", "(Filtered)", "(Unfiltered)", "(Open|Filtered)",
 };
 pthread_mutex_t		SETMUT = PTHREAD_MUTEX_INITIALIZER;
 
 void				result_set(packet_t *pkt, result_t res) {
 	uint64_t	ip_i, port_i, scan_i;
-	genh_t		*genh;
 
-	genh = pkt->iph->protocol == IPPROTO_ICMP
-		? (genh_t *)(pkt->icmph + 1)
-		: (genh_t *)(pkt->proth);
 	for (ip_i = 0; ip_i < OPTS.ip_nb; ++ip_i)
 		if (OPTS.ips[ip_i] == pkt->iph->saddr)
 			break;
 	for (port_i = 0; port_i < OPTS.port_nb; ++port_i)
-		if (ntohs(genh->source) == OPTS.ports[port_i])
+		if (ntohs(((genh_t *)pkt->proth)->source) == OPTS.ports[port_i])
 			break;
-	scan_i = ntohs(genh->dest) - SRC_PORT;
+	scan_i = ntohs(((genh_t *)pkt->proth)->dest) - SRC_PORT;
 	pthread_mutex_lock(&SETMUT);
 	if (!RESULTS[ip_i][port_i][scan_i])
 		RESULTS[ip_i][port_i][scan_i] = res;

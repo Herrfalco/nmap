@@ -9,7 +9,6 @@ typedef enum	result_e {
 	R_CLOSE,
 	R_FILTERED,
 	R_UNFILTERED,
-	R_OPEN_CLOSE,
 	R_OPEN_FILTERED,
 }				result_t;
 
