@@ -130,10 +130,28 @@ static char		*parse_ports(char *arg) {
 }
 
 static char		*parse_ip(char *arg) {
+	struct sockaddr_in	dst;
+	char				dst_ip[INET_ADDRSTRLEN];
+	struct addrinfo		*infos, hints = {
+		.ai_family = AF_INET,
+		.ai_socktype = SOCK_RAW,
+		.ai_protocol = IPPROTO_IP,
+	};
+	in_addr_t			in_addr;
+
 	if (!arg)
 		return ("IP not specified");
-	return ((OPTS.ips[OPTS.ip_nb++] = inet_addr(arg)) == INADDR_NONE
-			? "Invalid IP" : NULL);
+	if ((in_addr = inet_addr(arg)) == INADDR_NONE) {
+		if (!getaddrinfo(arg, NULL, &hints, &infos)) {
+			dst = *((struct sockaddr_in *)infos->ai_addr);
+			inet_ntop(AF_INET, &dst.sin_addr, dst_ip, INET_ADDRSTRLEN);
+			in_addr = inet_addr(dst_ip);
+		}
+	}
+	return ((OPTS.ips[OPTS.ip_nb++] = in_addr) == INADDR_NONE
+		? "Invalip IP address" : NULL);
+
+
 }
 
 static char		*parse_file(char *arg) {
