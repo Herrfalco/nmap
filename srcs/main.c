@@ -6,11 +6,11 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/07 15:57:25 by fcadet            #+#    #+#             */
-/*   Updated: 2023/10/01 21:37:17 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/10/02 21:24:49 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../hdrs/signal.h"
+#include "../hdrs/thrds.h"
 
 int		main(int, char **argv) {
 	uint64_t		i;
@@ -42,36 +42,23 @@ int		main(int, char **argv) {
 		thrds_fini();
 		return (print_main_error(strerror(errno), 7));
 	}
-
-	if (OPTS.speedup) {
-		err = thrds_spawn();
-		for (i = 0; i < OPTS.speedup; ++i)
-			pthread_join(THRDS[i].thrd, NULL);
-		for (i = 0; i < OPTS.speedup; ++i) {
-			if (THRDS[i].err_ptr || *THRDS[i].err_buff) {
-				error = 1;
-				fprintf(stderr, "Error: Thread n.%ld: %s\n", i,
-						THRDS[i].err_ptr ? THRDS[i].err_ptr : THRDS[i].err_buff);
-			}
-		}
-	} else {
-		thrds_single();
-		if (THRDS->err_ptr) {
+	result_init();
+	err = thrds_spawn();
+	for (i = 0; i < OPTS.speedup; ++i)
+		pthread_join(THRDS[i].thrd, NULL);
+	for (i = 0; i < OPTS.speedup; ++i) {
+		if (THRDS[i].err_ptr || *THRDS[i].err_buff) {
 			error = 1;
-			fprintf(stderr, "Error: %s\n", THRDS->err_ptr);
-		} else if (*THRDS->err_buff) {
-			error = 1;
-			fprintf(stderr, "Error: %s\n", THRDS->err_buff);
+			fprintf(stderr, "Error: Thread n.%ld: %s\n", i,
+					THRDS[i].err_ptr ? THRDS[i].err_ptr : THRDS[i].err_buff);
 		}
 	}
-
 	thrds_fini();
 	if (err)
 		return (print_main_error(err, 10));
 	else if (error)
 		return (print_main_error("Thread failure detected", 11));
-
-	if (!sig_catch()) {
+	if (!sig_catch() || result_complete()) {
 		if (gettimeofday(&end, NULL))
 			return (print_main_error("Can't get current time", 8));
 		ms = (end.tv_sec - start.tv_sec) * 1000

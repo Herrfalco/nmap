@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/11 14:41:31 by fcadet            #+#    #+#             */
-/*   Updated: 2023/10/01 13:55:52 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/10/02 23:14:08 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,16 +41,16 @@ static void		packet_fill_tcp(packet_t *packet, struct sockaddr_in *dst, scan_t s
 	bzero(packet->iph, sizeof(struct iphdr));
 }
 
-static void		packet_fill_udp(packet_t *packet, struct sockaddr_in *dst, scan_t scan) {
+static void		packet_fill_udp(packet_t *packet, struct sockaddr_in *dst, uint64_t body_sz) {
 	packet->ipp->src = LOCAL.addr.s_addr;
 	packet->ipp->dst = dst->sin_addr.s_addr;
 	packet->ipp->prot = IPPROTO_UDP;
-	packet->ipp->seg_sz = htons(sizeof(struct udphdr));
-	packet->udph->source = htons(scan_2_port(scan));
+	packet->ipp->seg_sz = htons(sizeof(struct udphdr) + body_sz);
+	packet->udph->source = htons(scan_2_port(ST_UDP));
 	packet->udph->dest = dst->sin_port;
-	packet->udph->len = htons(sizeof(struct udphdr));
+	packet->udph->len = htons(sizeof(struct udphdr) + body_sz);
 	packet->udph->check = packet_checksum((uint16_t *)packet->ipp,
-			sizeof(ip_pseudo_t) + sizeof(struct udphdr));
+			sizeof(ip_pseudo_t) + sizeof(struct udphdr) + body_sz);
 	bzero(packet->iph, sizeof(struct iphdr));
 }
 
@@ -71,11 +71,28 @@ void			packet_init(packet_t *packet, uint8_t *data, uint64_t sz) {
 }
 
 void			packet_fill(packet_t *packet, struct sockaddr_in *dst, scan_t scan) {
+	uint8_t		*payload = NULL;
+	uint64_t	sz = 0;
+
 	bzero(packet->iph, packet->sz);
 	if (scan == ST_UDP) {
-		packet_fill_udp(packet, dst, scan);
+		switch (ntohs(dst->sin_port)) {
+			case DNS_PORT:
+				payload = (uint8_t *)DNS_PAYLOAD;
+				sz = DNS_SZ;
+				break;
+			case SNMP_PORT:
+				payload = (uint8_t *)SNMP_PAYLOAD;
+				sz = SNMP_SZ;
+				break;
+			case DHCP_PORT:
+				payload = (uint8_t *)DHCP_PAYLOAD;
+				sz = DHCP_SZ;
+		}
+		mem_cpy((uint8_t *)(packet->udph + 1), payload, sz);
+		packet_fill_udp(packet, dst, sz);
 		packet_fill_ip(packet, dst->sin_addr.s_addr, IPPROTO_UDP);
-		packet->sz = sizeof(struct iphdr) + sizeof(struct udphdr);
+		packet->sz = sizeof(struct iphdr) + sizeof(struct udphdr) + sz;
 	} else {
 		packet_fill_tcp(packet, dst, scan);
 		packet_fill_ip(packet, dst->sin_addr.s_addr, IPPROTO_TCP);
@@ -93,8 +110,6 @@ void			packet_print(packet_t *packet) {
 			printf("%s::%d ",
 					inet_ntoa(*(struct in_addr *)&packet->iph->daddr),
 					ntohs(packet->tcph->dest));
-			printf("(seq: %d, ", ntohl(packet->tcph->seq));
-			printf("ack_seq: %d)", ntohl(packet->tcph->ack_seq));
 			printf("%s%s%s%s%s%s\n",
 					packet->tcph->fin ? " FIN" : "",
 					packet->tcph->syn ? " SYN" : "",

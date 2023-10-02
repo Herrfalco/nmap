@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/12 14:59:20 by fcadet            #+#    #+#             */
-/*   Updated: 2023/10/01 18:37:22 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/10/02 23:29:00 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,8 @@
 
 static char		*FLAG_NAMES[] = {
 	"help", "ports", "ip", "file", "speedup",
-	"scan", "timeout", "tempo", "revert",
+	"scan", "timeout", "tempo", "open", "close",
+	"other",
 };
 
 char		*SCAN_NAMES[] = {
@@ -32,7 +33,9 @@ static uint8_t	OPT_EXCL[] = {
 	F_HELP,											// F_SCAN
 	F_HELP,											// F_TIMEOUT
 	F_HELP,											// F_TEMPO
-	F_HELP,											// F_REVERT
+	F_HELP,											// F_OPEN
+	F_HELP,											// F_CLOSE
+	F_HELP,											// F_OTHER
 };
 
 static char		*parse_flag(char *arg, parse_fn_t *parse_fn);
@@ -72,7 +75,7 @@ void			parse_print(void *) {
 		printf("%s ", SCAN_NAMES[OPTS.scans[i]]);
 	printf("\n");
 	sprintf(buff, "%-*s", TITLE_SZ, "Speedup:");
-	printf("    %s%ld threads\n", buff, OPTS.speedup);
+	printf("    %s%ld additional threads\n", buff, OPTS.speedup - 1);
 	sprintf(buff, "%-*s", TITLE_SZ, "Timeout:");
 	printf("    %s%ldms\n", buff, OPTS.timeout);
 	sprintf(buff, "%-*s", TITLE_SZ, "Tempo:");
@@ -132,33 +135,45 @@ static char		*parse_ports(char *arg) {
 static char		*parse_ip(char *arg) {
 	struct sockaddr_in	dst;
 	char				dst_ip[INET_ADDRSTRLEN];
+	struct addrinfo		*infos = NULL, hints = {
+		.ai_family = AF_INET,
+		.ai_socktype = SOCK_RAW,
+		.ai_protocol = IPPROTO_IP,
+	};
+
+	if (!arg)
+		return ("IP not specified");
+	if ((OPTS.ips[OPTS.ip_nb] = inet_addr(arg)) == INADDR_NONE) {
+		if (getaddrinfo(arg, NULL, &hints, &infos)) {
+			if (infos)
+				free(infos);
+			return ("Invalid IP address");
+		}
+		dst = *((struct sockaddr_in *)infos->ai_addr);
+		if (!inet_ntop(AF_INET, &dst.sin_addr, dst_ip, INET_ADDRSTRLEN)
+				|| (OPTS.ips[OPTS.ip_nb] = inet_addr(dst_ip)) == INADDR_NONE) {
+			if (infos)
+				free(infos);
+			return ("Invalid IP address");
+		}
+	}
+	++OPTS.ip_nb;
+	if (infos)
+		free(infos);
+	return (NULL);
+}
+
+static char		*parse_file(char *arg) {
+	char				buff[FILE_SZ + 1] = { 0 };
+	struct sockaddr_in	dst;
+	char				dst_ip[INET_ADDRSTRLEN];
+	int64_t				sz, fd;
+	uint16_t			i, j;
 	struct addrinfo		*infos, hints = {
 		.ai_family = AF_INET,
 		.ai_socktype = SOCK_RAW,
 		.ai_protocol = IPPROTO_IP,
 	};
-	in_addr_t			in_addr;
-
-	if (!arg)
-		return ("IP not specified");
-	if ((in_addr = inet_addr(arg)) == INADDR_NONE) {
-		if (!getaddrinfo(arg, NULL, &hints, &infos)) {
-			dst = *((struct sockaddr_in *)infos->ai_addr);
-			inet_ntop(AF_INET, &dst.sin_addr, dst_ip, INET_ADDRSTRLEN);
-			in_addr = inet_addr(dst_ip);
-		}
-	}
-	return ((OPTS.ips[OPTS.ip_nb++] = in_addr) == INADDR_NONE
-		? "Invalip IP address" : NULL);
-
-
-}
-
-static char		*parse_file(char *arg) {
-	char		buff[FILE_SZ + 1] = { 0 };
-	int64_t		sz;
-	uint16_t	i;
-	int			fd;
 
 	if (!arg)
 		return ("IP file not specified");
@@ -168,14 +183,29 @@ static char		*parse_file(char *arg) {
 		close(fd);
 		return ("Can't read IP file");
 	}
-	for (i = 0; i < sz && OPTS.ip_nb < MAX_IPS; ++OPTS.ip_nb) {
+	for (i = 0, j = 0; i < sz && OPTS.ip_nb < MAX_IPS; ++OPTS.ip_nb) {
+		for (; j < sz && buff[j] != '\n'; ++j);
+		buff[j] = '\0';
 		if ((OPTS.ips[OPTS.ip_nb] = inet_addr(buff + i)) == INADDR_NONE) {
-			close(fd);
-			return ("Invalid IP file");
+			if (getaddrinfo(buff + i, NULL, &hints, &infos)) {
+				if (infos)
+					free(infos);
+				close(fd);
+				return ("Invalid IP address");
+			}
+			dst = *((struct sockaddr_in *)infos->ai_addr);
+			if (!inet_ntop(AF_INET, &dst.sin_addr, dst_ip, INET_ADDRSTRLEN)
+					|| (OPTS.ips[OPTS.ip_nb] = inet_addr(dst_ip)) == INADDR_NONE) {
+				if (infos)
+					free(infos);
+				close(fd);
+				return ("Invalid IP address");
+			}
 		}
-		for (; i < sz && buff[i] != '\n'; ++i);
-		++i;
+		i = ++j;
 	}
+	if (infos)
+		free(infos);
 	close(fd);
 	return (NULL);
 }
@@ -273,6 +303,8 @@ static char		*parse_flag(char *arg, parse_fn_t *parse_fn) {
 		parse_timeout,
 		parse_tempo,
 		NULL,
+		NULL,
+		NULL,
 	};
 	flag_t		flag;
 	uint8_t		i;
@@ -327,7 +359,9 @@ static char		*disp_help(char *err) {
 							"                       (SYN, NULL, ACK, FIN, XMAS, UDP)\n"
 							"          --timeout    time to wait for a response\n"
 							"          --tempo      sending temporization\n"
-							"          --revert     inverted result (not open)";
+							"          --open       display: open ports (default)\n"
+							"          --close               closed ports\n"
+							"          --other               other ones\n";
 
 	snprintf(buff, BUFF_SZ * 2, "%s\n\n%s",
 			err ? err : title, help);
@@ -361,6 +395,7 @@ char			*parse(char **argv) {
 		OPTS.tempo = DEF_TEMPO;
 	if (!(OPTS.flag & F_SCAN))
 		init_scans();
+	++OPTS.speedup;
 	return (NULL);
 }
 

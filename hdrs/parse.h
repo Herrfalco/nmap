@@ -6,14 +6,14 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/12 15:01:52 by fcadet            #+#    #+#             */
-/*   Updated: 2023/10/01 17:28:08 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/10/02 23:20:44 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef PARSE_H
 #define PARSE_H
 
-#include "utils.h"
+#include "signal.h"
 
 typedef enum		flag_e {
 	F_HELP = 0x1,
@@ -24,7 +24,9 @@ typedef enum		flag_e {
 	F_SCAN = 0x20,
 	F_TIMEOUT = 0x40,
 	F_TEMPO = 0x80,
-	F_REVERT = 0x100,
+	F_OPEN = 0x100,
+	F_CLOSE = 0x200,
+	F_OTHER = 0x400,
 }					flag_t;
 
 typedef enum		scan_e {

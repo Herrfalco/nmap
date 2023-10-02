@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/12 15:00:11 by fcadet            #+#    #+#             */
-/*   Updated: 2023/10/01 18:17:57 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/10/02 22:15:58 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,6 +30,11 @@ void			str_cpy(char *dst, char *src) {
 	for (; *src; ++dst, ++src)
 		*dst = *src;
 	*dst = '\0';
+}
+
+void			mem_cpy(uint8_t *dst, uint8_t *src, uint64_t sz) {
+	for (; sz; ++dst, ++src, --sz)
+		*dst = *src;
 }
 
 void			str_cat(char *s1, char *s2) {

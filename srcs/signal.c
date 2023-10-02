@@ -3,11 +3,7 @@
 static pthread_mutex_t		SIG_MUT = PTHREAD_MUTEX_INITIALIZER;
 static int					SIG_CATCH = 0;
 
-static void		sig_action(int) {
-	SIG_CATCH = 1;
-}
-
-void			sig_stop(void) {
+void			sig_stop(int) {
 	pthread_mutex_lock(&SIG_MUT);
 	SIG_CATCH = 1;
 	pthread_mutex_unlock(&SIG_MUT);
@@ -29,7 +25,7 @@ char			*handle_sig() {
 		SIGTERM, SIGUSR1, SIGUSR2, SIGQUIT
 	};
 	struct sigaction	act = { 
-		.sa_handler = sig_action,
+		.sa_handler = sig_stop,
 	};
 
 	sigemptyset(&mask);

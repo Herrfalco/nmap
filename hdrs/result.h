@@ -19,7 +19,9 @@ typedef struct	genh_s {
 
 typedef result_t	results_t[MAX_IPS][MAX_PORTS][SCANS_NB];
 
-void	result_set(packet_t *pkt, result_t res);
-void	result_print(void);
+void		result_set(packet_t *pkt, result_t res);
+void		result_print(void);
+void		result_init(void);
+uint64_t	result_complete(void);
 
 #endif

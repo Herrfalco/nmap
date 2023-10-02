@@ -6,11 +6,11 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/11 20:26:04 by fcadet            #+#    #+#             */
-/*   Updated: 2023/10/01 21:47:52 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/10/02 21:08:45 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../hdrs/signal.h"
+#include "../hdrs/thrds.h"
 
 int					SEND_SOCK = 0;
 pthread_mutex_t		PRINT = PTHREAD_MUTEX_INITIALIZER;
@@ -176,7 +176,6 @@ static void		thrds_run(thrds_arg_t *args) {
 	if (!(args->cap = pcap_open_live(LOCAL.dev_name,
 		PCAP_SNAPLEN_MAX, 0, PCAP_TIME_OUT, args->err_buff)))
 		return (thrds_clean(args));
-//	thrds_print_wrapper(args, (thrds_print_fn)filter_print, args->filt);
 	if (pcap_compile(args->cap, &args->bpf, args->filt, 1,
 				PCAP_NETMASK_UNKNOWN) == PCAP_ERROR
 			|| pcap_setfilter(args->cap, &args->bpf) == PCAP_ERROR) {
@@ -190,18 +189,13 @@ static void		thrds_run(thrds_arg_t *args) {
 	return (thrds_clean(args));
 }
 
-void				thrds_single(void) {
-	THRDS->job.nb = OPTS.port_nb * OPTS.ip_nb;
-	THRDS->filt = filter_init();
-	thrds_run(THRDS);
-}
-
 char				*thrds_spawn(void) {
 	uint64_t		tot = OPTS.port_nb * OPTS.ip_nb,
 					div = tot / OPTS.speedup,
 					rem = tot % OPTS.speedup, i;
 	char			*filt = filter_init();
 
+//	filter_print(filt);
 	for (i = 0; i < OPTS.speedup; ++i) {
 		if (!(THRDS[i].job.nb = div + (i < rem)))
 			break ;
@@ -210,9 +204,9 @@ char				*thrds_spawn(void) {
 		THRDS[i].filt = filt;
 		if (pthread_create(&THRDS[i].thrd, NULL,
 				(void *)thrds_run, &THRDS[i])) {
-			sig_stop();
+			sig_stop(0);
 			OPTS.speedup = i;
-			return ("Can't spawn every speedup threads");
+			return ("Can't spawn threads");
 		}
 	}
 	return (NULL);

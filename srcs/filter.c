@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/09 16:37:22 by fcadet            #+#    #+#             */
-/*   Updated: 2023/10/01 20:03:34 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/10/02 19:13:57 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,11 +42,12 @@ char			*filter_init(void) {
 		}
 	}
 	if (OPTS.scan_nb > 1)
-		sprintf(buff, "dst portrange %u-%lu)) or icmp)",
+		sprintf(buff, "dst portrange %u-%lu",
 			SRC_PORT, SRC_PORT + OPTS.scan_nb - 1);
 	else
-		sprintf(buff, "dst port %u)) or icmp)", SRC_PORT);
+		sprintf(buff, "dst port %u", SRC_PORT);
 	str_cat(filt, buff);
+	str_cat(filt, ") and (tcp or udp)) or icmp)");
 	return (filt);
 }
 
