@@ -28,7 +28,7 @@ static void			serv_name(uint16_t port, char *s_buff) {
 	if ((servent = getservbyport(htons(port), NULL)))
 		sprintf(s_buff, "%s/%s", servent->s_name, servent->s_proto);
 	else
-		sprintf(s_buff, "Unassigned");
+		sprintf(s_buff, "unknown");
 }
 
 static void			results_str(uint64_t scan_i, result_t res, char *r_buff) {
