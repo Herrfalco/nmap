@@ -4,6 +4,7 @@ static results_t	RESULTS = { 0 };
 static char			*RESULT_STR[] = {
 	NULL, "(Open)", "(Close)", "(Filtered)", "(Unfiltered)", "(Open|Close)", "(Open|Filtered)",
 };
+pthread_mutex_t		SETMUT = PTHREAD_MUTEX_INITIALIZER;
 
 void				result_set(packet_t *pkt, result_t res) {
 	uint64_t	ip_i, port_i, scan_i;
@@ -19,8 +20,10 @@ void				result_set(packet_t *pkt, result_t res) {
 		if (ntohs(genh->source) == OPTS.ports[port_i])
 			break;
 	scan_i = ntohs(genh->dest) - SRC_PORT;
+	pthread_mutex_lock(&SETMUT);
 	if (!RESULTS[ip_i][port_i][scan_i])
 		RESULTS[ip_i][port_i][scan_i] = res;
+	pthread_mutex_unlock(&SETMUT);
 }
 
 static void			serv_name(uint16_t port, char *s_buff) {

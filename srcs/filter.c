@@ -12,75 +12,46 @@
 
 #include "../hdrs/filter.h"
 
-static char			*filt_add(filt_t *filt, char *data) {
-	uint64_t		len = str_len(data);
-	char			*new;
+char			*filter_init(void) {
+	static char	filt[32 * (MAX_IPS + MAX_PORTS + SCANS_NB)] = { 0 };
+	char		buff[BUFF_SZ];
+	uint64_t	i, start, range = 0;
 
-	if (!(new = realloc(filt->data, (filt->sz + len + 1) * sizeof(char))))
-		return ("Can't allocate memory for string extension");
-	str_cpy(new + filt->sz, data);
-	filt->data = new;
-	filt->sz += len;
-	return (NULL);
-}
-
-char				*filter_init(filt_t *filt, job_t *job) {
-	uint64_t	p = job->idx % OPTS.port_nb,
-				i = job->idx / OPTS.port_nb,
-				max = job->idx + job->nb;
-	uint16_t	start;
-	uint8_t		stop = 0, range = 0;
-	char		*err, buff[BUFF_SZ];
-
-	switch (job->nb) {
-		case 0:
-			return (NULL);
-		case 1:
-			sprintf(buff, "dst port %u and ", SRC_PORT);
-			break;
-		default:
-			sprintf(buff, "dst portrange %u-%lu and ",
-					SRC_PORT, SRC_PORT + OPTS.scan_nb - 1);
+	str_cat(filt, "(");
+	for (i = 0; i < OPTS.ip_nb; ++i) {
+		sprintf(buff, "src host %s%s",
+			inet_ntoa(*(struct in_addr *)&OPTS.ips[i]),
+			i + 1 == OPTS.ip_nb ? ") and (((" : " or ");
+		str_cat(filt, buff);
 	}
-	if ((err = filt_add(filt, buff)))
-		return (err);
-	for (; !stop && i < OPTS.ip_nb; ++i, p = 0) {
-		sprintf(buff, "(src host %s and (", inet_ntoa(*(struct in_addr *)&OPTS.ips[i]) );
-		if ((err = filt_add(filt, buff)))
-			return (err);
-		for (; !stop && p < OPTS.port_nb; ++p) {
-			if ((i * OPTS.port_nb + p + 1) >= max)
-				stop = 1;
-			if (stop || p + 1 >= OPTS.port_nb || OPTS.ports[p + 1] - OPTS.ports[p] > 1) {
-				if (range)
-					sprintf(buff, "src portrange %d-%d or ", start, OPTS.ports[p]);
-				else
-					sprintf(buff, "src port %d or ", OPTS.ports[p]);
-				if ((err = filt_add(filt, buff)))
-					return (err);
-				range = 0;
-			} else if (!range) {
-				start = OPTS.ports[p];
-				range = 1;
-			}
+	for (i = 0; i < OPTS.port_nb; ++i) {
+		if (i + 1 >= OPTS.port_nb
+			|| OPTS.ports[i + 1] - OPTS.ports[i] > 1) {
+			if (range)
+				sprintf(buff, "src portrange %lu-%u%s",
+					start, OPTS.ports[i],
+					i + 1 == OPTS.port_nb ? ") and (" : " or ");
+			else
+				sprintf(buff, "src port %d%s", OPTS.ports[i],
+					i + 1 == OPTS.port_nb ? ") and (" : " or ");
+			str_cat(filt, buff);
+			range = 0;
+		} else if (!range) {
+			start = OPTS.ports[i];
+			range = 1;
 		}
-		if ((err = filt_add(filt, "icmp)) or ")))
-			return (err);
 	}
-	filt->sz -= 4;
-	filt->data[filt->sz] = '\0';
-	return (NULL);
+	if (OPTS.scan_nb > 1)
+		sprintf(buff, "dst portrange %u-%lu)) or icmp)",
+			SRC_PORT, SRC_PORT + OPTS.scan_nb - 1);
+	else
+		sprintf(buff, "dst port %u)) or icmp)", SRC_PORT);
+	str_cat(filt, buff);
+	return (filt);
 }
 
-void			filter_print(filt_t *filt) {
-	if (filt->data)
-		printf("%s\n", filt->data);
-}
-
-void			filter_destroy(filt_t *filt) {
-	if (filt->data)
-		free(filt->data);
-	filt->data = NULL;
+void			filter_print(char *filt) {
+	printf("%s\n", filt);
 }
 
 void			filter_bpf_free(struct bpf_program *bpf) {

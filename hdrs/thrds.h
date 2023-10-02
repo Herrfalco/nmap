@@ -19,9 +19,9 @@ typedef struct			thrds_arg_s {
 	job_t				job;
 	char				err_buff[BUFF_SZ];
 	char				*err_ptr;
+	char				*filt;
 	uint8_t				id;
 	pcap_t				*cap;
-	filt_t				filt;
 	struct bpf_program	bpf;
 	pthread_t			thrd;
 }						thrds_arg_t;

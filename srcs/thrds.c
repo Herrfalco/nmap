@@ -45,7 +45,6 @@ void				thrds_fini(void) {
 }
 
 static void		thrds_clean(thrds_arg_t *args) {
-	filter_destroy(&args->filt);
 	filter_bpf_free(&args->bpf);
 	pcap_close(args->cap);
 }
@@ -160,7 +159,7 @@ static void			thrds_recv(thrds_arg_t *args, const struct pcap_pkthdr *pkt_hdr, c
 			default:
 				break ;
 		}
-		thrds_print_wrapper(args, (thrds_print_fn)packet_print, &packet);
+//		thrds_print_wrapper(args, (thrds_print_fn)packet_print, &packet);
 	} else
 		thrds_print_wrapper(args, (thrds_print_fn)print_error,
 			"Corrupted packet received");
@@ -168,17 +167,15 @@ static void			thrds_recv(thrds_arg_t *args, const struct pcap_pkthdr *pkt_hdr, c
 
 static void		thrds_run(thrds_arg_t *args) {
 	if (!(args->cap = pcap_open_live(LOCAL.dev_name,
-		PCAP_SNAPLEN_MAX, 0, PCAP_TIME_OUT, args->err_buff))
-		|| (args->err_ptr = filter_init(&args->filt, &args->job)))
+		PCAP_SNAPLEN_MAX, 0, PCAP_TIME_OUT, args->err_buff)))
 		return (thrds_clean(args));
-	thrds_print_wrapper(args, (thrds_print_fn)filter_print, &args->filt);
-	if (pcap_compile(args->cap, &args->bpf, args->filt.data, 1,
+	thrds_print_wrapper(args, (thrds_print_fn)filter_print, args->filt);
+	if (pcap_compile(args->cap, &args->bpf, args->filt, 1,
 				PCAP_NETMASK_UNKNOWN) == PCAP_ERROR
 			|| pcap_setfilter(args->cap, &args->bpf) == PCAP_ERROR) {
 		args->err_ptr = pcap_geterr(args->cap);
 		return (thrds_clean(args));
 	}
-	filter_destroy(&args->filt);
 	filter_bpf_free(&args->bpf);
 	if ((args->err_ptr = thrds_send(args)))
 		return (thrds_clean(args));
@@ -188,6 +185,7 @@ static void		thrds_run(thrds_arg_t *args) {
 
 void				thrds_single(void) {
 	THRDS->job.nb = OPTS.port_nb * OPTS.ip_nb;
+	THRDS->filt = filter_init();
 	thrds_run(THRDS);
 }
 
@@ -195,12 +193,14 @@ char				*thrds_spawn(void) {
 	uint64_t		tot = OPTS.port_nb * OPTS.ip_nb,
 					div = tot / OPTS.speedup,
 					rem = tot % OPTS.speedup, i;
+	char			*filt = filter_init();
 
 	for (i = 0; i < OPTS.speedup; ++i) {
 		if (!(THRDS[i].job.nb = div + (i < rem)))
 			break ;
 		THRDS[i].job.idx = i * div + (i < rem ? i : rem);
 		THRDS[i].id = i;
+		THRDS[i].filt = filt;
 		if (pthread_create(&THRDS[i].thrd, NULL,
 				(void *)thrds_run, &THRDS[i])) {
 			sig_stop();

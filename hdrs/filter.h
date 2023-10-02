@@ -15,19 +15,13 @@
 
 #include "packet.h"
 
-typedef struct		filt_s {
-	char			*data;
-	uint64_t		sz;
-}					filt_t;
-
 typedef struct		job_s {
 	uint64_t		idx;
 	uint64_t		nb;
 }					job_t;
 
-char			*filter_init(filt_t *filt, job_t *job);
-void			filter_print(filt_t *filt);
-void			filter_destroy(filt_t *filt);
+char			*filter_init(void);
+void			filter_print(char *filt);
 void			filter_bpf_free(struct bpf_program *bpf);
 
 #endif // FILTER_H
