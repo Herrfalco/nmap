@@ -152,9 +152,10 @@ static void			thrds_recv(thrds_arg_t *args, const struct pcap_pkthdr *pkt_hdr, c
 					return ;
 				packet_init(&icmp_body, (uint8_t *)(packet.icmph + 1),
 					packet.sz - IPH_SZ - ICMPH_SZ);
-				tmp = icmp_body.tcph->source;
-				icmp_body.tcph->source = icmp_body.tcph->dest;
-				icmp_body.tcph->dest = tmp;
+				tmp = ((genh_t *)icmp_body.proth)->source;
+				((genh_t *)icmp_body.proth)->source
+					= ((genh_t *)icmp_body.proth)->dest;
+				((genh_t *)icmp_body.proth)->dest = tmp;
 				tmp = icmp_body.iph->saddr;
 				icmp_body.iph->saddr = icmp_body.iph->daddr;
 				icmp_body.iph->daddr = tmp;
