@@ -203,9 +203,9 @@ static char		*parse_file(char *arg) {
 			}
 		}
 		i = ++j;
+		if (infos)
+			freeaddrinfo(infos);
 	}
-	if (infos)
-		freeaddrinfo(infos);
 	close(fd);
 	return (NULL);
 }
