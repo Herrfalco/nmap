@@ -37,8 +37,8 @@ void				result_set(packet_t *pkt, result_t res) {
 static void			serv_name(uint16_t port, char *s_buff) {
 	struct servent	*servent;
 
-	if ((servent = getservbyport(htons(port), NULL)))
-		sprintf(s_buff, "%s/%s", servent->s_name, servent->s_proto);
+	if ((servent = getservbyport(htons(port), "tcp")))
+		sprintf(s_buff, "%s", servent->s_name);
 	else
 		sprintf(s_buff, "unknown");
 }

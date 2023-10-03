@@ -17,7 +17,7 @@ local_t		LOCAL = { 0 };
 char		*local_init(void) {
 	char				err[PCAP_ERRBUF_SIZE];
 	static char			buff[BUFF_SZ];
-	pcap_if_t			*all_devs, *dev = { 0 };
+	pcap_if_t			*all_devs = NULL, *dev = NULL;
 	struct pcap_addr	*addr = NULL;
 
 	if (pcap_findalldevs(&all_devs, err)) {
