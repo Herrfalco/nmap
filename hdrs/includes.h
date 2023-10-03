@@ -34,7 +34,7 @@
 #define MAX_IPS				0x10
 #define SRC_PORT			55555
 #define FILE_SZ				((INET_ADDRSTRLEN + 1) * MAX_IPS)
-#define MAX_THRDS			250
+#define MAX_THRDS			251
 #define FLAGS_NB			11
 #define SCANS_NB			6
 #define MAX_WIN				0xff
