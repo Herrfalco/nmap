@@ -46,7 +46,10 @@ void				thrds_fini(void) {
 
 static void		thrds_clean(thrds_arg_t *args) {
 	filter_bpf_free(&args->bpf);
-	pcap_close(args->cap);
+	if (args->cap)
+		pcap_close(args->cap);
+	if (args->lo_cap)
+		pcap_close(args->lo_cap);
 }
 
 static char		*recv_loop(uint64_t ms, thrds_arg_t *args) {
@@ -62,6 +65,11 @@ static char		*recv_loop(uint64_t ms, thrds_arg_t *args) {
 		if (pcap_dispatch(args->cap, 0, (pcap_handler)thrds_recv, (void *)args)
 				== PCAP_ERROR) {
 			args->err_ptr = pcap_geterr(args->cap);
+			return ("Can't call dispatch function");
+		}
+		if (pcap_dispatch(args->lo_cap, 0, (pcap_handler)thrds_recv, (void *)args)
+				== PCAP_ERROR) {
+			args->err_ptr = pcap_geterr(args->lo_cap);
 			return ("Can't call dispatch function");
 		}
 		if (gettimeofday(&tv_cur, NULL))
@@ -174,12 +182,23 @@ static void			thrds_recv(thrds_arg_t *args, const struct pcap_pkthdr *pkt_hdr, c
 
 static void		thrds_run(thrds_arg_t *args) {
 	if (!(args->cap = pcap_open_live(LOCAL.dev_name,
-		PCAP_SNAPLEN_MAX, 0, PCAP_TIME_OUT, args->err_buff)))
+					PCAP_SNAPLEN_MAX, 0,
+					PCAP_TIME_OUT, args->err_buff))
+			|| !(args->lo_cap = pcap_open_live("lo",
+					PCAP_SNAPLEN_MAX, 0,
+					PCAP_TIME_OUT, args->err_buff)))
 		return (thrds_clean(args));
 	if (pcap_compile(args->cap, &args->bpf, args->filt, 1,
 				PCAP_NETMASK_UNKNOWN) == PCAP_ERROR
 			|| pcap_setfilter(args->cap, &args->bpf) == PCAP_ERROR) {
 		args->err_ptr = pcap_geterr(args->cap);
+		return (thrds_clean(args));
+	}
+	filter_bpf_free(&args->bpf);
+	if (pcap_compile(args->lo_cap, &args->bpf, args->filt, 1,
+				PCAP_NETMASK_UNKNOWN) == PCAP_ERROR
+			|| pcap_setfilter(args->lo_cap, &args->bpf) == PCAP_ERROR) {
+		args->err_ptr = pcap_geterr(args->lo_cap);
 		return (thrds_clean(args));
 	}
 	filter_bpf_free(&args->bpf);

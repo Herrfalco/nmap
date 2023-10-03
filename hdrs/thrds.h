@@ -22,6 +22,7 @@ typedef struct			thrds_arg_s {
 	char				*filt;
 	uint8_t				id;
 	pcap_t				*cap;
+	pcap_t				*lo_cap;
 	struct bpf_program	bpf;
 	pthread_t			thrd;
 }						thrds_arg_t;

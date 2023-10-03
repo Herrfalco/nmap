@@ -146,20 +146,20 @@ static char		*parse_ip(char *arg) {
 	if ((OPTS.ips[OPTS.ip_nb] = inet_addr(arg)) == INADDR_NONE) {
 		if (getaddrinfo(arg, NULL, &hints, &infos)) {
 			if (infos)
-				free(infos);
+				freeaddrinfo(infos);
 			return ("Invalid IP address");
 		}
 		dst = *((struct sockaddr_in *)infos->ai_addr);
 		if (!inet_ntop(AF_INET, &dst.sin_addr, dst_ip, INET_ADDRSTRLEN)
 				|| (OPTS.ips[OPTS.ip_nb] = inet_addr(dst_ip)) == INADDR_NONE) {
 			if (infos)
-				free(infos);
+				freeaddrinfo(infos);
 			return ("Invalid IP address");
 		}
 	}
 	++OPTS.ip_nb;
 	if (infos)
-		free(infos);
+		freeaddrinfo(infos);
 	return (NULL);
 }
 
@@ -169,7 +169,7 @@ static char		*parse_file(char *arg) {
 	char				dst_ip[INET_ADDRSTRLEN];
 	int64_t				sz, fd;
 	uint16_t			i, j;
-	struct addrinfo		*infos, hints = {
+	struct addrinfo		*infos = NULL, hints = {
 		.ai_family = AF_INET,
 		.ai_socktype = SOCK_RAW,
 		.ai_protocol = IPPROTO_IP,
@@ -189,7 +189,7 @@ static char		*parse_file(char *arg) {
 		if ((OPTS.ips[OPTS.ip_nb] = inet_addr(buff + i)) == INADDR_NONE) {
 			if (getaddrinfo(buff + i, NULL, &hints, &infos)) {
 				if (infos)
-					free(infos);
+					freeaddrinfo(infos);
 				close(fd);
 				return ("Invalid IP address");
 			}
@@ -197,7 +197,7 @@ static char		*parse_file(char *arg) {
 			if (!inet_ntop(AF_INET, &dst.sin_addr, dst_ip, INET_ADDRSTRLEN)
 					|| (OPTS.ips[OPTS.ip_nb] = inet_addr(dst_ip)) == INADDR_NONE) {
 				if (infos)
-					free(infos);
+					freeaddrinfo(infos);
 				close(fd);
 				return ("Invalid IP address");
 			}
@@ -205,7 +205,7 @@ static char		*parse_file(char *arg) {
 		i = ++j;
 	}
 	if (infos)
-		free(infos);
+		freeaddrinfo(infos);
 	close(fd);
 	return (NULL);
 }
