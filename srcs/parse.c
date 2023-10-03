@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/12 14:59:20 by fcadet            #+#    #+#             */
-/*   Updated: 2023/10/02 23:29:00 by fcadet           ###   ########.fr       */
+/*   Updated: 2023/10/03 15:46:21 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -203,9 +203,9 @@ static char		*parse_file(char *arg) {
 			}
 		}
 		i = ++j;
+		if (infos)
+			freeaddrinfo(infos);
 	}
-	if (infos)
-		freeaddrinfo(infos);
 	close(fd);
 	return (NULL);
 }
